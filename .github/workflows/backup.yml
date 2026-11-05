@@ -1,0 +1,144 @@
+name: Nightly backup
+
+# Every night at 00:00 Nepal time (18:15 UTC):
+#   1. dump the database (SQL + CSV + Excel + manifest)
+#   2. restore it into a throwaway Postgres and verify it is complete
+#   3. push it to the PRIVATE backup repo (history = every previous night)
+#   4. keep an encrypted copy as a 90-day workflow artifact
+#   5. keep Supabase from pausing and this schedule from being auto-disabled
+# This repo is PUBLIC: never print data in logs, never upload unencrypted artifacts.
+
+on:
+  schedule:
+    - cron: '15 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # keep-alive: re-enable this workflow so GitHub never disables the schedule
+  issues: write    # open an issue if a backup fails
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+env:
+  BACKUP_REPO: git@github.com:Manav47699/robotics-store-backup.git
+  PG_BIN: /usr/lib/postgresql/17/bin
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: scratch
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_DEPLOY_KEY: ${{ secrets.BACKUP_DEPLOY_KEY }}
+        run: |
+          missing=0
+          [ -n "$SUPABASE_DB_URL" ]   || { echo "::error::Repository secret SUPABASE_DB_URL is not set"; missing=1; }
+          [ -n "$BACKUP_DEPLOY_KEY" ] || { echo "::error::Repository secret BACKUP_DEPLOY_KEY is not set"; missing=1; }
+          exit $missing
+
+      - name: Keep the schedule alive
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -X PUT -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/backup.yml/enable" \
+            && echo "workflow re-enabled (resets GitHub's 60-day inactivity timer)" || echo "::warning::keep-alive call failed"
+
+      - name: Install PostgreSQL 17 client and openpyxl
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          $PG_BIN/pg_dump --version
+          pip install --quiet openpyxl==3.1.5
+
+      - name: Back up database (3 attempts)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          for i in 1 2 3; do
+            rm -rf out
+            if scripts/backup.sh out; then exit 0; fi
+            echo "::warning::attempt $i failed, retrying in 60s"; sleep 60
+          done
+          exit 1
+
+      - name: Verify the backup restores correctly
+        run: scripts/verify-backup.sh out postgresql://postgres:scratch@localhost:55432/postgres
+
+      - name: Push to private backup repo
+        env:
+          BACKUP_DEPLOY_KEY: ${{ secrets.BACKUP_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$BACKUP_DEPLOY_KEY" > ~/.ssh/backup_key && chmod 600 ~/.ssh/backup_key
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/backup_key -o IdentitiesOnly=yes"
+
+          for i in 1 2 3; do git clone -q --depth 50 "$BACKUP_REPO" backup-repo && break; sleep 20; done
+          cd backup-repo
+          rm -rf latest && mkdir latest && cp ../out/* latest/
+          # A browsable monthly snapshot (first backup of each month), in addition to git history.
+          month="monthly/$(date -u +%Y-%m)"
+          [ -d "$month" ] || { mkdir -p "$month" && cp ../out/* "$month/"; }
+          cp ../docs/BACKUP_REPO_README.md README.md
+
+          git config user.name  "${{ github.repository_owner }}"
+          git config user.email "${{ github.repository_owner }}@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Backup $(date -u +%Y-%m-%dT%H:%MZ)" || { echo "no changes"; exit 0; }
+          for i in 1 2 3; do git push -q origin HEAD && exit 0; sleep 20; git pull -q --rebase origin HEAD || true; done
+          exit 1
+
+      - name: Encrypted copy as artifact
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          if [ -z "$PASSPHRASE" ]; then echo "BACKUP_ENCRYPTION_PASSPHRASE not set — skipping encrypted artifact"; exit 0; fi
+          tar -czf - -C out . | gpg --batch --yes --symmetric --cipher-algo AES256 --pinentry-mode loopback \
+            --passphrase-fd 3 -o robostore-backup.tar.gz.gpg 3<<<"$PASSPHRASE"
+          echo "ENCRYPTED=1" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        if: env.ENCRYPTED == '1'
+        with:
+          name: robostore-backup-encrypted-${{ github.run_number }}
+          path: robostore-backup.tar.gz.gpg
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Keep Supabase awake
+        if: always()
+        run: |
+          url=$(grep -oE "https://[a-z0-9]+\.supabase\.co" js/config.js)
+          key=$(grep -oE "sb_publishable_[A-Za-z0-9_-]+" js/config.js)
+          curl -fsS -o /dev/null "$url/auth/v1/health" -H "apikey: $key" && echo "Supabase pinged" || echo "::warning::Supabase ping failed"
+
+      - name: Report failure
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Nightly backup failed ($(date -u +%Y-%m-%d))"
+          body="The nightly backup run failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Open the run, read the red step, fix it, then use **Run workflow** on the Nightly backup page to re-run. See docs/OPERATIONS.md."
+          gh issue create --repo "${{ github.repository }}" --title "$title" --body "$body" || true

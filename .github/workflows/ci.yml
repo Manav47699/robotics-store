@@ -1,0 +1,45 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan every commit for secrets (gitleaks)
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks git --config .gitleaks.toml --redact --no-banner --exit-code 1 .
+
+  site:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: JavaScript syntax
+        run: for f in js/*.js tests/*.cjs; do node --check "$f"; done
+      - name: Shell & Python syntax
+        run: |
+          for f in scripts/*.sh .githooks/pre-commit; do bash -n "$f"; done
+          python3 -m py_compile tests/api_test.py scripts/csv_to_xlsx.py
+      - name: Config files are valid
+        run: python3 -c "import json; json.load(open('vercel.json'))"
+      - name: Built CSS matches source
+        run: scripts/build-css.sh --check
+      - name: No secret key in the public site config
+        run: "! grep -rE 'sb_secret_|service_role' js/ index.html"
+      - name: Every script tag points at a file that exists
+        run: |
+          for src in $(grep -oE 'src="[^"]+"' index.html | cut -d'"' -f2 | grep -v '^http'); do
+            [ -f "$src" ] || { echo "missing $src"; exit 1; }
+          done

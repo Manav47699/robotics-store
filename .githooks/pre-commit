@@ -26,7 +26,7 @@ fi
 # 3. Exact values from the local .env (if present) must never appear.
 if [ -f .env ]; then
   while IFS='=' read -r k v; do
-    case "$k" in SUPABASE_SECRET_KEY|SUPABASE_DB_URL|APP_LOGIN_PASSWORD) ;; *) continue ;; esac
+    case "$k" in SUPABASE_SECRET_KEY|SUPABASE_DB_URL|APP_LOGIN_PASSWORD|BACKUP_ENCRYPTION_PASSPHRASE) ;; *) continue ;; esac
     [ -z "${v:-}" ] && continue
     if git diff --cached -U0 | grep -E '^\+' | grep -qF -- "$v"; then
       echo "✖ Staged changes contain the value of $k from .env"; fail=1

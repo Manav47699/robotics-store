@@ -13,4 +13,6 @@ description = "Postgres connection string containing a password"
 regex = '''postgres(?:ql)?://[^:/@\s]+:[^@\s\[]{6,}@'''
 
 [allowlist]
-paths = ['''\.env\.example''', '''\.githooks/pre-commit''', '''\.gitleaks\.toml''']
+description = "Publishable key is public by design; vendored libraries are third-party code"
+paths = ['''\.env\.example''', '''\.githooks/pre-commit''', '''\.gitleaks\.toml''', '''vendor/.*''', '''assets/app\.css''']
+regexes = ['''sb_publishable_[A-Za-z0-9_-]+''']
