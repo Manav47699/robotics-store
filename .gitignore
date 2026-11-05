@@ -1,0 +1,30 @@
+# ── Secrets: NEVER commit these ─────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_*
+!id_*.pub
+backup_deploy_key*
+secrets/
+
+# ── Local backup output (contains personal data) ─
+backups/
+*.sql.gz
+*.dump
+
+# ── Tooling ─────────────────────────────────────
+node_modules/
+.vercel/
+test-results/
+playwright-report/
+__pycache__/
+*.pyc
+
+# ── OS / editor ─────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Blocks commits that contain secrets. Enabled by: git config core.hooksPath .githooks
+set -euo pipefail
+
+fail=0
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# 1. Never allow env / key files, even with `git add -f`.
+while IFS= read -r f; do
+  case "$f" in
+    .env.example) ;;
+    .env|.env.*|*/.env|*/.env.*|*.pem|*.key|*backup_deploy_key*)
+      echo "✖ Refusing to commit secret file: $f"; fail=1 ;;
+  esac
+done <<< "$staged"
+
+# 2. Pattern scan of the staged diff.
+patterns='sb_secret_[A-Za-z0-9_-]{8,}|postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]\[]{6,}@|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+if git diff --cached -U0 -- . ':!.githooks/pre-commit' ':!.gitleaks.toml' ':!.env.example' | grep -E '^\+' | grep -Eq "$patterns"; then
+  echo "✖ Staged changes look like they contain a secret (secret key, DB URL with password, or private key):"
+  git diff --cached -U0 -- . ':!.githooks/pre-commit' ':!.gitleaks.toml' ':!.env.example' | grep -E '^\+' | grep -En "$patterns" | cut -c1-120
+  fail=1
+fi
+
+# 3. Exact values from the local .env (if present) must never appear.
+if [ -f .env ]; then
+  while IFS='=' read -r k v; do
+    case "$k" in SUPABASE_SECRET_KEY|SUPABASE_DB_URL|APP_LOGIN_PASSWORD) ;; *) continue ;; esac
+    [ -z "${v:-}" ] && continue
+    if git diff --cached -U0 | grep -E '^\+' | grep -qF -- "$v"; then
+      echo "✖ Staged changes contain the value of $k from .env"; fail=1
+    fi
+  done < .env
+  pw=$(sed -nE 's#^SUPABASE_DB_URL=postgres(ql)?://[^:]+:([^@]+)@.*#\2#p' .env)
+  if [ -n "$pw" ] && git diff --cached -U0 | grep -E '^\+' | grep -qF -- "$pw"; then
+    echo "✖ Staged changes contain the database password"; fail=1
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "Commit blocked. Remove the secret (keep it in .env) and try again."
+  exit 1
+fi

@@ -1,0 +1,16 @@
+# Secret scanning config used by the "Secret scan" GitHub Action.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret (service) key"
+regex = '''sb_secret_[A-Za-z0-9_-]{8,}'''
+
+[[rules]]
+id = "postgres-url-with-password"
+description = "Postgres connection string containing a password"
+regex = '''postgres(?:ql)?://[^:/@\s]+:[^@\s\[]{6,}@'''
+
+[allowlist]
+paths = ['''\.env\.example''', '''\.githooks/pre-commit''', '''\.gitleaks\.toml''']
