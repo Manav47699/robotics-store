@@ -12,3 +12,7 @@ assets/input.css
 .env*
 .gitleaks.toml
 *.md
+.gitleaksignore
+.gitignore
+.vercelignore
+secrets
