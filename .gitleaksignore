@@ -1,0 +1,5 @@
+# Known non-secrets in history (reviewed). Format: commit:file:rule:line
+# Placeholder "postgres.NEWREF:PASSWORD@" in docs, and the throwaway CI scratch database password;
+# both were reworded in the next commit.
+1b0a41eaa96f7de3556e4fa5427ddb87126c3d90:.github/workflows/backup.yml:postgres-url-with-password:84
+1b0a41eaa96f7de3556e4fa5427ddb87126c3d90:docs/OPERATIONS.md:postgres-url-with-password:85
