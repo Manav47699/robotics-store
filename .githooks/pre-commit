@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Blocks commits that contain secrets. Enabled by: git config core.hooksPath .githooks
-set -euo pipefail
+# Note: never use `grep -q` at the end of a pipeline here — with pipefail, an early exit
+# causes SIGPIPE upstream and the match would be silently ignored on large commits.
+set -uo pipefail
 
 fail=0
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
@@ -10,30 +12,34 @@ staged=$(git diff --cached --name-only --diff-filter=ACMR)
 while IFS= read -r f; do
   case "$f" in
     .env.example) ;;
-    .env|.env.*|*/.env|*/.env.*|*.pem|*.key|*backup_deploy_key*)
+    .env|.env.*|*/.env|*/.env.*|*.pem|*.key|*backup_deploy_key*|*backup_passphrase*)
       echo "✖ Refusing to commit secret file: $f"; fail=1 ;;
   esac
 done <<< "$staged"
 
-# 2. Pattern scan of the staged diff.
+added=$(git diff --cached -U0 -- . ':!.githooks/pre-commit' ':!.gitleaks.toml' ':!.env.example' | grep -E '^\+' || true)
+
+# 2. Pattern scan of the added lines.
 patterns='sb_secret_[A-Za-z0-9_-]{8,}|postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]\[]{6,}@|-----BEGIN [A-Z ]*PRIVATE KEY-----'
-if git diff --cached -U0 -- . ':!.githooks/pre-commit' ':!.gitleaks.toml' ':!.env.example' | grep -E '^\+' | grep -Eq "$patterns"; then
+hits=$(printf '%s\n' "$added" | grep -En "$patterns" || true)
+if [ -n "$hits" ]; then
   echo "✖ Staged changes look like they contain a secret (secret key, DB URL with password, or private key):"
-  git diff --cached -U0 -- . ':!.githooks/pre-commit' ':!.gitleaks.toml' ':!.env.example' | grep -E '^\+' | grep -En "$patterns" | cut -c1-120
+  printf '%s\n' "$hits" | cut -c1-120
   fail=1
 fi
 
-# 3. Exact values from the local .env (if present) must never appear.
+# 3. Exact values from the local .env (if present) must never appear anywhere staged.
 if [ -f .env ]; then
+  all_added=$(git diff --cached -U0 | grep -E '^\+' || true)
   while IFS='=' read -r k v; do
     case "$k" in SUPABASE_SECRET_KEY|SUPABASE_DB_URL|APP_LOGIN_PASSWORD|BACKUP_ENCRYPTION_PASSPHRASE) ;; *) continue ;; esac
     [ -z "${v:-}" ] && continue
-    if git diff --cached -U0 | grep -E '^\+' | grep -qF -- "$v"; then
+    if printf '%s\n' "$all_added" | grep -F -- "$v" >/dev/null; then
       echo "✖ Staged changes contain the value of $k from .env"; fail=1
     fi
   done < .env
   pw=$(sed -nE 's#^SUPABASE_DB_URL=postgres(ql)?://[^:]+:([^@]+)@.*#\2#p' .env)
-  if [ -n "$pw" ] && git diff --cached -U0 | grep -E '^\+' | grep -qF -- "$pw"; then
+  if [ -n "$pw" ] && printf '%s\n' "$all_added" | grep -F -- "$pw" >/dev/null; then
     echo "✖ Staged changes contain the database password"; fail=1
   fi
 fi
@@ -42,3 +48,4 @@ if [ "$fail" -ne 0 ]; then
   echo "Commit blocked. Remove the secret (keep it in .env) and try again."
   exit 1
 fi
+exit 0

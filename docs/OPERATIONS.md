@@ -82,7 +82,7 @@ The publishable key in `js/config.js` is public by design and doesn't need rotat
 2. If the old Supabase project still exists and only data is damaged, you can restore into it. Otherwise create a **new** Supabase project.
 3. Install the PostgreSQL 17 client (`postgresql-client-17`), then:
    ```bash
-   scripts/restore.sh backup-folder "postgresql://postgres.NEWREF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres"
+   scripts/restore.sh backup-folder "postgresql://postgres.NEWREF:[YOUR-PASSWORD]@aws-0-REGION.pooler.supabase.com:5432/postgres"
    ```
    It asks you to type `RESTORE`, saves a safety copy of whatever was there first, then restores.
 4. New project only: put the new URL/keys in `.env`, run `scripts/create-login.sh`, update `js/config.js` (URL + publishable key) **and the URLs in `vercel.json` and `index.html` (Content-Security-Policy)**, commit and push. Update the `SUPABASE_DB_URL` GitHub secret.

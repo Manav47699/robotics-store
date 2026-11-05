@@ -186,9 +186,10 @@ def main():
 
     print("Stranger who signs up with the public key")
     email = f"stranger-{uuid.uuid4().hex[:8]}@robostore.invalid"
-    s, r = call("POST", "/auth/v1/admin/users", {"email": email, "password": "Str4nger!pass", "email_confirm": True}, key=SECRET)
+    stranger_pw = uuid.uuid4().hex
+    s, r = call("POST", "/auth/v1/admin/users", {"email": email, "password": stranger_pw, "email_confirm": True}, key=SECRET)
     sid = r.get("id") if isinstance(r, dict) else None
-    st_tok = login(email, "Str4nger!pass")
+    st_tok = login(email, stranger_pw)
     if st_tok:
         s, r = call("GET", "/rest/v1/components?select=*", token=st_tok)
         check("sees no data", s == 200 and r == [], f"{s} {r}")

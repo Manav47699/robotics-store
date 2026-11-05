@@ -81,7 +81,9 @@ jobs:
           exit 1
 
       - name: Verify the backup restores correctly
-        run: scripts/verify-backup.sh out postgresql://postgres:scratch@localhost:55432/postgres
+        env:
+          PGPASSWORD: scratch   # throwaway database that only exists during this job
+        run: scripts/verify-backup.sh out postgresql://postgres@localhost:55432/postgres
 
       - name: Push to private backup repo
         env:

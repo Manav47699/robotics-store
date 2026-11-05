@@ -17,7 +17,17 @@ jobs:
       - name: Scan every commit for secrets (gitleaks)
         run: |
           curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | tar -xz gitleaks
-          ./gitleaks git --config .gitleaks.toml --redact --no-banner --exit-code 1 .
+          status=0
+          ./gitleaks git --config .gitleaks.toml --redact --no-banner --exit-code 1 \
+            --report-format json --report-path gitleaks.json . || status=$?
+          # Findings as annotations (file/line/rule/commit only — the secret itself is never printed).
+          python3 - <<'PY'
+          import json, os
+          if os.path.exists("gitleaks.json"):
+              for f in json.load(open("gitleaks.json")):
+                  print(f"::error file={f['File']},line={f['StartLine']}::{f['RuleID']} fingerprint={f['Fingerprint']}")
+          PY
+          exit $status
 
   site:
     runs-on: ubuntu-24.04
