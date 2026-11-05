@@ -1,517 +1,336 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>11th Committee Robotics Club Store</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
-        /* Record-book style typography */
-        body { font-family: 'Crimson Pro', serif; }
-        
-        /* Tech/Mono style for numbers and system text */
-        .tech-font { font-family: 'Share Tech Mono', monospace; }
-
-        /* Parchment texture background for main content panels */
-        .paper-texture {
-            background-color: #fdfaf5;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxnIGZpbGwtcnVsZT0iZXZlbm9kZCI+PGcgZmlsbD0iI2QyYjQ4YyIgZmlsbC1vcGFjaXR5PSIwLjE1Ij48cGF0aCBkPSJNMCAwaDF2MUgwVjB6TTEgMWgxdjFIMVYxeiIKLz48L2c+PC9nPjwvc3ZnPg==');
-        }
-
-        /* Technical grid background for the login screen and nav */
-        .tech-grid {
-            background-color: #f0f4f8;
-            background-image: 
-                linear-gradient(rgba(180, 200, 220, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(180, 200, 220, 0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        /* Custom toggle design - Record Book vs Tech Interface */
-        .toggle-switch-input:checked + .toggle-switch-label {
-            background-color: #1e3a8a; /* Blue-900 */
-        }
-        .toggle-switch-input:checked + .toggle-switch-label .toggle-dot {
-            transform: translateX(100%);
-        }
-
-        /* Red Delete Action Styling */
-        .btn-delete {
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        .btn-delete:hover {
-            opacity: 1;
-            color: #b91c1c; /* red-700 */
-        }
-
-        .hidden-section { display: none !important; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://dnvluspfcebqvulrdqoi.supabase.co wss://dnvluspfcebqvulrdqoi.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="robots" content="noindex, nofollow">
+  <title>11th Committee Robotics Club Store</title>
+  <link rel="icon" href="image_0.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/app.css">
 </head>
 <body class="tech-grid min-h-screen flex flex-col text-gray-900">
 
-    <div id="login-page" class="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full p-8 rounded-2xl shadow-2xl border-2 border-gray-300 bg-white" style="background-image: linear-gradient(145deg, #f0f0f0, #ffffff); border-radius: 8px;">
-            <div class="text-center">
-                <img src="image_0.png" alt="Robotics Club Dharan Logo" class="mx-auto h-24 w-auto mb-6">
-                
-                <h2 class="text-2xl font-extrabold text-gray-950 tracking-tight">
-                    Store Access Control
-                </h2>
-                <p class="mt-2 text-sm text-gray-600 font-medium">
-                    11th Committee Management Portal
-                </p>
+  <!-- ───────────── Boot (shown until we know if you're logged in) ───────────── -->
+  <div id="boot" class="flex-1 flex items-center justify-center">
+    <div class="text-center">
+      <div class="spinner mx-auto mb-4"></div>
+      <p class="tech-font text-sm text-gray-500">Connecting to store ledger…</p>
+    </div>
+  </div>
+
+  <!-- ───────────── Login ───────────── -->
+  <div id="login-page" class="hidden-section flex-1 flex items-center justify-center px-4 py-12">
+    <div class="login-card max-w-md w-full p-8 rounded-lg shadow-2xl border-2 border-gray-300">
+      <div class="text-center">
+        <img src="image_0.png" alt="Robotics Club Dharan logo" class="mx-auto h-24 w-auto mb-6">
+        <h1 class="text-2xl font-extrabold text-gray-950 tracking-tight">Store Access Control</h1>
+        <p class="mt-2 text-sm text-gray-600 font-medium">11th Committee Management Portal</p>
+      </div>
+      <form id="login-form" class="mt-8 space-y-6" novalidate>
+        <div class="rounded-md shadow-inner space-y-4 bg-gray-50 p-6 border border-gray-200">
+          <div>
+            <label for="username" class="field-label">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required class="field tech-font" placeholder="Username">
+          </div>
+          <div>
+            <label for="password" class="field-label">Password</label>
+            <div class="relative">
+              <input id="password" name="password" type="password" autocomplete="current-password" required class="field tech-font pr-16" placeholder="Password">
+              <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 text-xs font-bold text-gray-500 hover:text-gray-900 uppercase">Show</button>
             </div>
-            <form class="mt-8 space-y-6" onsubmit="handleLogin(event)">
-                <div class="rounded-md shadow-inner space-y-4 bg-gray-50 p-6 border border-gray-200">
-                    <div>
-                        <label for="username" class="block text-sm font-semibold text-gray-800 mb-1">Username</label>
-                        <input id="username" name="username" type="text" required class="appearance-none relative block w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg placeholder-gray-400 text-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm tech-font" placeholder="Admin username">
-                    </div>
-                    <div>
-                        <label for="password" class="block text-sm font-semibold text-gray-800 mb-1">Password</label>
-                        <input id="password" name="password" type="password" required class="appearance-none relative block w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg placeholder-gray-400 text-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm tech-font" placeholder="Admin password">
-                    </div>
-                </div>
-
-                <div id="login-error" class="text-red-600 text-sm hidden text-center font-bold">
-                    Authentication failed. Please verify credentials.
-                </div>
-
-                <div>
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-6 border-2 border-transparent text-sm font-bold rounded-lg text-white bg-gray-950 hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition duration-150 tracking-wide uppercase">
-                        Initialize Session
-                    </button>
-                </div>
-            </form>
+          </div>
         </div>
+        <p id="login-error" class="hidden-section text-red-700 text-sm text-center font-bold" role="alert"></p>
+        <button type="submit" id="login-submit" class="btn btn-dark w-full py-3 tracking-widest">Initialize Session</button>
+      </form>
     </div>
+  </div>
 
-
-    <div id="main-dashboard" class="hidden-section flex-1 flex flex-col">
-        <nav class="bg-gray-950 border-b-2 border-gray-800 sticky top-0 z-50 shadow-lg">
-            <div class="max-w-7xl mx-auto px-6 py-1 h-16 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <img src="image_0.png" alt="RC Logo" class="h-12 w-auto">
-                    <span class="font-bold text-lg text-white tracking-wider">RC Store Ledger</span>
-                    <span class="bg-blue-800 text-white text-xs font-bold px-3 py-1 rounded-full tech-font">11th Committee</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button onclick="handleLogout()" class="text-sm font-semibold text-gray-300 hover:text-red-400 transition duration-150 uppercase tracking-wider">
-                        Log Out
-                    </button>
-                </div>
-            </div>
-        </nav>
-
-        <main class="flex-1 max-w-7xl w-full mx-auto p-6 sm:p-8 space-y-8">
-            
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6 rounded-xl border-2 border-gray-300 bg-white shadow-xl">
-                
-                <div class="flex items-center gap-4">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Display View:</span>
-                    <div class="flex items-center gap-1.5 p-1.5 rounded-full bg-gray-100 border-2 border-gray-200">
-                        <button id="toggle-inventory-btn" onclick="switchView('inventory')" class="px-5 py-2 text-sm font-bold rounded-full bg-white text-gray-950 shadow-md transition duration-150 uppercase">
-                            Stock List
-                        </button>
-                        <button id="toggle-logs-btn" onclick="switchView('logs')" class="px-5 py-2 text-sm font-bold rounded-full text-gray-600 hover:text-gray-950 transition duration-150 uppercase">
-                            Issue Logs
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <button onclick="openModal('item-modal')" class="inline-flex items-center px-6 py-2.5 border-2 border-blue-800 text-sm font-bold rounded-lg text-white bg-blue-900 hover:bg-blue-950 shadow-md transition duration-150 uppercase tracking-wider">
-                        + New Entry
-                    </button>
-                    <button onclick="openModal('issue-modal')" class="inline-flex items-center px-6 py-2.5 border-2 border-gray-300 text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-inner transition duration-150 uppercase tracking-wider">
-                        Issue Item
-                    </button>
-                </div>
-            </div>
-
-            <section id="inventory-section" class="paper-texture rounded-xl border-4 border-gray-300 shadow-xl overflow-hidden p-8" style="border-radius: 8px;">
-                <div class="flex justify-between items-center mb-6 border-b-2 border-gray-200 pb-4">
-                    <h3 class="text-3xl font-extrabold text-gray-950 tracking-tight">Active Component Inventory</h3>
-                    <span class="text-sm font-semibold text-gray-500 tech-font">SECTION_A: Assets</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 text-left">
-                        <thead class="text-xs font-extrabold text-gray-500 uppercase tracking-widest">
-                            <tr>
-                                <th class="px-6 py-3">Component Identifier</th>
-                                <th class="px-6 py-3 text-center">Registered (T)</th>
-                                <th class="px-6 py-3 text-center">Available (A)</th>
-                                <th class="px-6 py-3 text-center">Loaned (L)</th>
-                                <th class="px-6 py-3 text-right">Records Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table-body" class="divide-y divide-gray-100 text-sm font-semibold text-gray-900">
-                            </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="logs-section" class="hidden-section paper-texture rounded-xl border-4 border-gray-300 shadow-xl overflow-hidden p-8" style="border-radius: 8px;">
-                <div class="flex justify-between items-center mb-6 border-b-2 border-gray-200 pb-4">
-                    <h3 class="text-3xl font-extrabold text-gray-950 tracking-tight">Record of Issuances & Loans</h3>
-                    <span class="text-sm font-semibold text-gray-500 tech-font">SECTION_B: Records</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 text-left">
-                        <thead class="text-xs font-extrabold text-gray-500 uppercase tracking-widest">
-                            <tr>
-                                <th class="px-6 py-3">TimeStamp</th>
-                                <th class="px-6 py-3">Borrower (Fac/Sem)</th>
-                                <th class="px-6 py-3">Component / Qty</th>
-                                <th class="px-6 py-3">Purpose / Reason</th>
-                                <th class="px-6 py-3 text-center">Status</th>
-                                <th class="px-6 py-3 text-right">Ledger Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logs-table-body" class="divide-y divide-gray-100 text-sm text-gray-700">
-                            </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <div id="item-modal" class="hidden-section fixed inset-0 bg-gray-950 bg-opacity-70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-xl max-w-md w-full overflow-hidden shadow-2xl border-4 border-gray-300 transform transition-all" style="border-radius: 8px;">
-            <div class="border-b-2 border-gray-200 flex justify-between items-center mb-6 pb-4">
-                <h3 class="text-xl font-extrabold text-gray-950 tracking-wide">Register New Inventory Entry</h3>
-                <button onclick="closeModal('item-modal')" class="text-gray-500 hover:text-gray-800 text-3xl font-light">&times;</button>
-            </div>
-            <form onsubmit="addComponent(event)" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Component Name (Required)</label>
-                    <input type="text" id="new-item-name" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font" placeholder="e.g., L298N Motor Driver, MPU6050">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Initial Unit Count (Required)</label>
-                    <input type="number" id="new-item-qty" min="1" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font" placeholder="0">
-                </div>
-                <div class="pt-6 flex space-x-3 justify-end">
-                    <button type="button" onclick="closeModal('item-modal')" class="px-6 py-2 border-2 border-gray-300 rounded-lg text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 uppercase">Cancel</button>
-                    <button type="submit" class="px-6 py-2 border-2 border-transparent rounded-lg text-sm font-bold text-white bg-blue-900 hover:bg-blue-950 uppercase">Commit Entry</button>
-                </div>
-            </form>
+  <!-- ───────────── App ───────────── -->
+  <div id="app" class="hidden-section flex-1 flex flex-col">
+    <nav class="bg-gray-950 border-b-2 border-gray-800 sticky top-0 z-40 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-2 flex flex-wrap gap-2 justify-between items-center">
+        <div class="flex items-center gap-3 min-w-0">
+          <img src="image_0.png" alt="" class="h-11 w-auto shrink-0">
+          <span class="font-bold text-lg text-white tracking-wider truncate">RC Store Ledger</span>
+          <span class="hidden sm:inline bg-blue-800 text-white text-xs font-bold px-3 py-1 rounded-full tech-font">11th Committee</span>
         </div>
-    </div>
-
-    <div id="issue-modal" class="hidden-section fixed inset-0 bg-gray-950 bg-opacity-70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-xl max-w-md w-full overflow-hidden shadow-2xl border-4 border-gray-300 transform transition-all" style="border-radius: 8px;">
-            <div class="border-b-2 border-gray-200 flex justify-between items-center mb-6 pb-4">
-                <h3 class="text-xl font-extrabold text-gray-950 tracking-wide">Issue Component Form</h3>
-                <button onclick="closeModal('issue-modal')" class="text-gray-500 hover:text-gray-800 text-3xl font-light">&times;</button>
+        <div class="flex items-center gap-3 sm:gap-5">
+          <span id="live-status" class="live-status tech-font text-xs text-gray-300 flex items-center gap-1.5" title="Connection status">
+            <span class="dot"></span><span class="label">Connecting</span>
+          </span>
+          <div class="relative">
+            <button id="export-btn" class="text-sm font-semibold text-gray-300 hover:text-white uppercase tracking-wider" aria-haspopup="true" aria-expanded="false">Export ▾</button>
+            <div id="export-menu" class="hidden-section absolute right-0 mt-2 w-56 bg-white border-2 border-gray-300 rounded-lg shadow-xl py-1 z-50">
+              <button data-export="xlsx" class="menu-item">Excel workbook (.xlsx)</button>
+              <button data-export="json" class="menu-item">Full data (.json)</button>
             </div>
-            <form onsubmit="issueComponent(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Select Component</label>
-                    <select id="issue-item-select" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font bg-white">
-                        </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Quantity to Issue</label>
-                    <input type="number" id="issue-qty" min="1" value="1" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font">
-                </div>
-                <hr class="border-gray-200">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Borrower Full Name</label>
-                    <input type="text" id="issue-name" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font" placeholder="Committe Member Name">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-800 mb-1">Faculty</label>
-                        <input type="text" id="issue-faculty" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font" placeholder="BCT / BEX">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-800 mb-1">Semester</label>
-                        <input type="text" id="issue-semester" required class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm tech-font" placeholder="e.g., 7th">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-1">Purpose / Project Reason <span class="text-xs text-gray-400 font-normal">(Optional)</span></label>
-                    <textarea id="issue-reason" rows="2" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Purpose for the component..."></textarea>
-                </div>
-                <div class="pt-6 flex space-x-3 justify-end">
-                    <button type="button" onclick="closeModal('issue-modal')" class="px-6 py-2 border-2 border-gray-300 rounded-lg text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 uppercase">Cancel</button>
-                    <button type="submit" class="px-6 py-2 border-2 border-transparent rounded-lg text-sm font-bold text-white bg-blue-900 hover:bg-blue-950 uppercase">Log Transaction</button>
-                </div>
-            </form>
+          </div>
+          <button id="logout-btn" class="text-sm font-semibold text-gray-300 hover:text-red-400 uppercase tracking-wider">Log Out</button>
         </div>
+      </div>
+    </nav>
+
+    <div id="conn-banner" class="hidden-section bg-amber-100 border-b-2 border-amber-300 text-amber-900 text-sm font-semibold px-4 py-2 text-center" role="status"></div>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
+      <!-- Summary -->
+      <div class="grid grid-cols-3 gap-3 sm:gap-4">
+        <div class="stat-card"><span class="stat-label">Components</span><span id="stat-components" class="stat-value">–</span></div>
+        <div class="stat-card"><span class="stat-label">Units in store</span><span id="stat-available" class="stat-value">–</span></div>
+        <div class="stat-card"><span class="stat-label">Units on loan</span><span id="stat-loaned" class="stat-value">–</span></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 sm:p-6 rounded-xl border-2 border-gray-300 bg-white shadow-xl">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">View:</span>
+          <div class="flex items-center gap-1 p-1 rounded-full bg-gray-100 border-2 border-gray-200" role="tablist">
+            <button class="view-tab" data-view="stock" role="tab">Stock List</button>
+            <button class="view-tab" data-view="logs" role="tab">Issue Logs</button>
+            <button class="view-tab" data-view="bin" role="tab">Bin <span id="bin-count" class="bin-count hidden-section"></span></button>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input id="search" type="search" class="field tech-font sm:w-64" placeholder="Search…" aria-label="Search">
+          <div class="flex gap-3 write-only">
+            <button id="open-add" class="btn btn-primary flex-1 sm:flex-none">+ New Entry</button>
+            <button id="open-issue" class="btn btn-secondary flex-1 sm:flex-none">Issue Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stock list -->
+      <section id="view-stock" class="ledger-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Active Component Inventory</h2>
+          <span class="panel-tag">SECTION_A: Assets</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Date Added</th>
+                <th class="text-center">Registered (T)</th>
+                <th class="text-center">Available (A)</th>
+                <th class="text-center">Loaned (L)</th>
+                <th class="text-right write-only">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="stock-body"></tbody>
+          </table>
+        </div>
+        <p id="stock-empty" class="empty-state hidden-section"></p>
+      </section>
+
+      <!-- Issue logs -->
+      <section id="view-logs" class="ledger-panel hidden-section">
+        <div class="panel-head">
+          <h2 class="panel-title">Record of Issuances &amp; Loans</h2>
+          <div class="flex items-center gap-1 p-1 rounded-full bg-gray-100 border-2 border-gray-200">
+            <button class="filter-tab" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="active">On loan</button>
+            <button class="filter-tab" data-filter="returned">Returned</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Issued On</th>
+                <th>Borrower</th>
+                <th>Component / Qty</th>
+                <th class="text-center">Status</th>
+                <th class="text-right write-only">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="logs-body"></tbody>
+          </table>
+        </div>
+        <p id="logs-empty" class="empty-state hidden-section"></p>
+      </section>
+
+      <!-- Bin -->
+      <section id="view-bin" class="ledger-panel hidden-section">
+        <div class="panel-head">
+          <h2 class="panel-title">Bin</h2>
+          <span class="panel-tag">SECTION_C: Removed</span>
+        </div>
+        <p class="text-sm text-gray-600 mb-6">Items in the bin are hidden from stock and logs but can be restored. <strong>Delete permanently</strong> removes them from the site for good.</p>
+
+        <h3 class="sub-title">Components</h3>
+        <div class="overflow-x-auto mb-8">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th class="text-center">Registered (T)</th>
+                <th>Moved to bin</th>
+                <th class="text-right write-only">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bin-components-body"></tbody>
+          </table>
+          <p id="bin-components-empty" class="empty-state hidden-section">No components in the bin.</p>
+        </div>
+
+        <h3 class="sub-title">Issue records</h3>
+        <div class="overflow-x-auto">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Issued On</th>
+                <th>Borrower</th>
+                <th>Component / Qty</th>
+                <th>Moved to bin</th>
+                <th class="text-right write-only">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bin-issues-body"></tbody>
+          </table>
+          <p id="bin-issues-empty" class="empty-state hidden-section">No issue records in the bin.</p>
+        </div>
+      </section>
+
+      <p id="last-sync" class="text-xs text-gray-500 tech-font text-right"></p>
+    </main>
+  </div>
+
+  <!-- ───────────── Modal: New entry ───────────── -->
+  <div id="modal-add" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modal-add-title" class="modal-title">Register New Inventory Entry</h3>
+        <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <form id="form-add" class="space-y-5" novalidate>
+        <div>
+          <label for="add-name" class="field-label">Component Name</label>
+          <input id="add-name" type="text" list="component-names" maxlength="120" required autocomplete="off" class="field tech-font" placeholder="e.g., L298N Motor Driver">
+          <datalist id="component-names"></datalist>
+          <p id="add-name-hint" class="field-hint"></p>
+        </div>
+        <div>
+          <label for="add-units" class="field-label">Units</label>
+          <input id="add-units" type="number" inputmode="numeric" min="1" max="100000" step="1" required class="field tech-font" placeholder="0">
+        </div>
+        <div class="date-field" data-date-field="add">
+          <span class="field-label">Date Added</span>
+          <div class="flex gap-2">
+            <button type="button" class="date-mode" data-mode="today">Added today</button>
+            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+          </div>
+          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date added">
+          <p class="field-hint date-preview"></p>
+        </div>
+        <p class="form-error hidden-section" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Commit Entry</button>
+        </div>
+      </form>
     </div>
+  </div>
 
+  <!-- ───────────── Modal: Issue ───────────── -->
+  <div id="modal-issue" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-issue-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modal-issue-title" class="modal-title">Issue Component Form</h3>
+        <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <form id="form-issue" class="space-y-4" novalidate>
+        <div>
+          <label for="issue-component" class="field-label">Component</label>
+          <select id="issue-component" required class="field tech-font bg-white"></select>
+          <p id="issue-none" class="field-hint text-red-700 hidden-section">Nothing is available to issue right now.</p>
+        </div>
+        <div>
+          <label for="issue-units" class="field-label">Units</label>
+          <input id="issue-units" type="number" inputmode="numeric" min="1" step="1" value="1" required class="field tech-font">
+          <p id="issue-units-hint" class="field-hint"></p>
+        </div>
+        <hr class="border-gray-200">
+        <div>
+          <label for="issue-name" class="field-label">Borrower's Full Name</label>
+          <input id="issue-name" type="text" maxlength="120" required autocomplete="off" class="field tech-font" placeholder="Full name">
+        </div>
+        <div>
+          <label for="issue-roll" class="field-label">Borrower's Roll Number</label>
+          <input id="issue-roll" type="text" maxlength="30" required autocomplete="off" autocapitalize="characters" spellcheck="false" class="field tech-font" placeholder="080bei013">
+          <p id="issue-roll-hint" class="field-hint text-amber-700"></p>
+        </div>
+        <div class="date-field" data-date-field="issue">
+          <span class="field-label">Date Issued</span>
+          <div class="flex gap-2">
+            <button type="button" class="date-mode" data-mode="today">Issued today</button>
+            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+          </div>
+          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date issued">
+          <p class="field-hint date-preview"></p>
+        </div>
+        <p class="form-error hidden-section" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Log Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <script>
-        // --- SECURE CREDENTIALS CONFIGURATION ---
-        const ADMIN_USER = "admin";
-        const ADMIN_PASS = "robotics11";
+  <!-- ───────────── Modal: Return ───────────── -->
+  <div id="modal-return" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-return-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modal-return-title" class="modal-title">Mark as Returned</h3>
+        <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <form id="form-return" class="space-y-5" novalidate>
+        <p id="return-summary" class="text-sm text-gray-800"></p>
+        <div class="date-field" data-date-field="return">
+          <span class="field-label">Date Returned</span>
+          <div class="flex gap-2">
+            <button type="button" class="date-mode" data-mode="today">Returned today</button>
+            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+          </div>
+          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date returned">
+          <p class="field-hint date-preview"></p>
+        </div>
+        <p class="form-error hidden-section" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Return</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        // --- CORE APPLICATION MEMORY STATE ---
-        // Initializing mock placeholder data if localStorage database is empty
-        let storeData = JSON.parse(localStorage.getItem('rc_store_inventory')) || [
-            { id: 1, name: "Raspberry Pi 4 Model B (4GB)", total: 5, available: 3, taken: 2 },
-            { id: 2, name: "LiPo Battery (11.1V, 5000mAh)", total: 20, available: 18, taken: 2 },
-            { id: 3, name: "NEMA 17 Stepper Motor", total: 10, available: 10, taken: 0 },
-            { id: 4, name: "Jetson Nano Developer Kit", total: 3, available: 3, taken: 0 }
-        ];
+  <!-- ───────────── Modal: Confirm ───────────── -->
+  <div id="modal-confirm" class="modal hidden-section" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="confirm-title" class="modal-title"></h3>
+        <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <div id="confirm-body" class="text-sm text-gray-800 space-y-2"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="button" id="confirm-ok" class="btn btn-primary"></button>
+      </div>
+    </div>
+  </div>
 
-        let transactionLogs = JSON.parse(localStorage.getItem('rc_store_logs')) || [
-            { id: 101, itemId: 1, date: new Date().toISOString(), borrower: "S. Shrestha", faculty: "BCT", semester: "6th", qty: 1, reason: "Drone Flight Control", status: "Active" },
-            { id: 102, itemId: 2, date: new Date().toISOString(), borrower: "A. Thapa", faculty: "BEX", semester: "4th", qty: 2, reason: "Robot Base Power", status: "Active" },
-            { id: 103, itemId: 1, date: new Date().toISOString(), borrower: "R. Singh", faculty: "BCT", semester: "6th", qty: 1, reason: "Robot Arm Control", status: "Active" }
-        ];
+  <div id="toasts" class="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 items-stretch sm:items-end" aria-live="polite"></div>
 
-        // --- INITIALIZATION ---
-        document.addEventListener("DOMContentLoaded", () => {
-            // Check persistence session status
-            if (sessionStorage.getItem("isLoggedIn") === "true") {
-                showDashboard();
-            }
-        });
+  <noscript><p class="p-8 text-center font-bold">This site needs JavaScript enabled.</p></noscript>
 
-        // --- AUTHENTICATION INTERFACES ---
-        function handleLogin(e) {
-            e.preventDefault();
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            const errorDiv = document.getElementById('login-error');
-
-            if (user === ADMIN_USER && pass === ADMIN_PASS) {
-                sessionStorage.setItem("isLoggedIn", "true");
-                errorDiv.classList.add('hidden');
-                showDashboard();
-            } else {
-                errorDiv.classList.remove('hidden');
-            }
-        }
-
-        function handleLogout() {
-            sessionStorage.removeItem("isLoggedIn");
-            document.getElementById('main-dashboard').classList.add('hidden-section');
-            document.getElementById('login-page').classList.remove('hidden-section');
-        }
-
-        function showDashboard() {
-            document.getElementById('login-page').classList.add('hidden-section');
-            document.getElementById('main-dashboard').classList.remove('hidden-section');
-            syncAndRender();
-        }
-
-        // --- DATA PERSISTENCE & UI SYNCHRONIZATION ---
-        function syncAndRender() {
-            localStorage.setItem('rc_store_inventory', JSON.stringify(storeData));
-            localStorage.setItem('rc_store_logs', JSON.stringify(transactionLogs));
-            
-            renderInventoryTable();
-            renderLogsTable();
-            populateItemDropdown();
-        }
-
-        // --- UI NAVIGATION VIEW TOGGLING ---
-        function switchView(view) {
-            const invSection = document.getElementById('inventory-section');
-            const logsSection = document.getElementById('logs-section');
-            const invBtn = document.getElementById('toggle-inventory-btn');
-            const logsBtn = document.getElementById('toggle-logs-btn');
-
-            if (view === 'inventory') {
-                invSection.classList.remove('hidden-section');
-                logsSection.classList.add('hidden-section');
-                invBtn.className = "px-5 py-2 text-sm font-bold rounded-full bg-white text-gray-950 shadow-md transition duration-150 uppercase";
-                logsBtn.className = "px-5 py-2 text-sm font-bold rounded-full text-gray-600 hover:text-gray-950 transition duration-150 uppercase";
-            } else {
-                invSection.classList.add('hidden-section');
-                logsSection.classList.remove('hidden-section');
-                invBtn.className = "px-5 py-2 text-sm font-bold rounded-full text-gray-600 hover:text-gray-950 transition duration-150 uppercase";
-                logsBtn.className = "px-5 py-2 text-sm font-bold rounded-full bg-white text-gray-950 shadow-md transition duration-150 uppercase";
-            }
-        }
-
-        // --- MODAL WINDOW HANDLERS ---
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden-section');
-        }
-
-        document.getElementById('item-modal').classList.add('hidden-section');
-        document.getElementById('issue-modal').classList.add('hidden-section');
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden-section');
-        }
-
-        // --- DELETE & CONFIRM FUNCTIONALITY ---
-        function confirmDelete(id, name, type) {
-            const message = type === 'item' ? 
-                `CONFIRMATION REQUIRED:\nAre you sure you want to permanently delete '${name}'? This action is irreversible and may affect active issuance logs.` : 
-                `CONFIRMATION REQUIRED:\nPermanently purge this issuance log entry? Any missing inventory must be accounted for.`;
-
-            if (confirm(message)) {
-                if (type === 'item') {
-                    storeData = storeData.filter(item => item.id !== id);
-                    // Also delete all logs associated with this item? (Maybe, depends on policy)
-                } else {
-                    transactionLogs = transactionLogs.filter(log => log.id !== id);
-                }
-                syncAndRender();
-            }
-        }
-
-        // --- RENDER FUNCTIONS ---
-        function renderInventoryTable() {
-            const tbody = document.getElementById('inventory-table-body');
-            tbody.innerHTML = '';
-            
-            storeData.forEach(item => {
-                const row = document.createElement('tr');
-                row.className = "hover:bg-gray-50 border-b border-gray-100 transition duration-150";
-                row.innerHTML = `
-                    <td class="px-6 py-4 font-bold text-gray-950">${item.name}</td>
-                    <td class="px-6 py-4 text-center text-gray-600 tech-font">${item.total}</td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="inline-flex px-3 py-1 rounded-lg text-xs font-bold tech-font ${item.available > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${item.available} Units
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-center text-gray-600 tech-font">${item.taken}</td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="confirmDelete(${item.id}, '${item.name}', 'item')" class="btn-delete text-gray-400 hover:text-red-700 text-xl font-bold transition">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function renderLogsTable() {
-            const tbody = document.getElementById('logs-table-body');
-            tbody.innerHTML = '';
-
-            transactionLogs.slice().reverse().forEach(log => {
-                const matchedItem = storeData.find(i => i.id === log.itemId);
-                const itemName = matchedItem ? matchedItem.name : "Unknown Item";
-                const date = new Date(log.date);
-                const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                
-                const row = document.createElement('tr');
-                row.className = "hover:bg-gray-50 border-b border-gray-100 text-xs sm:text-sm font-medium";
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-600 tech-font">${formattedDate}</td>
-                    <td class="px-6 py-4 font-bold text-gray-950 whitespace-nowrap">${log.borrower} (${log.faculty}/${log.semester})</td>
-                    <td class="px-6 py-4 font-bold text-gray-900">${itemName} / <span class="tech-font">${log.qty} Units</span></td>
-                    <td class="px-6 py-4 italic text-gray-600 max-w-xs truncate">${log.reason ? log.reason : '<span class="text-gray-300">None specified</span>'}</td>
-                    <td class="px-6 py-4 text-center whitespace-nowrap">
-                        ${log.status === 'Active' ? 
-                            `<button onclick="returnItem(${log.id})" class="px-4 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border-2 border-amber-200 rounded-lg text-xs font-bold uppercase tracking-wider transition">Return</button>` : 
-                            `<span class="text-green-700 font-bold text-xs bg-green-50 px-3 py-1 rounded border border-green-200">Returned</span>`
-                        }
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="confirmDelete(${log.id}, '${log.borrower}', 'log')" class="btn-delete text-gray-400 hover:text-red-700 text-xl font-bold transition">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function populateItemDropdown() {
-            const select = document.getElementById('issue-item-select');
-            select.innerHTML = '';
-            storeData.forEach(item => {
-                if(item.available > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = item.id;
-                    opt.className = "tech-font";
-                    opt.textContent = `${item.name} (${item.available} units in club)`;
-                    select.appendChild(opt);
-                }
-            });
-        }
-
-        // --- STOCK WRITE MUTATION OPERATIONS ---
-        function addComponent(e) {
-            e.preventDefault();
-            const name = document.getElementById('new-item-name').value.trim();
-            const qty = parseInt(document.getElementById('new-item-qty').value);
-
-            // Simple verification if component already exists
-            const existingItem = storeData.find(item => item.name.toLowerCase() === name.toLowerCase());
-            if (existingItem) {
-                existingItem.total += qty;
-                existingItem.available += qty;
-            } else {
-                storeData.push({
-                    id: Date.now(),
-                    name: name,
-                    total: qty,
-                    available: qty,
-                    taken: 0
-                });
-            }
-
-            e.target.reset();
-            closeModal('item-modal');
-            syncAndRender();
-        }
-
-        function issueComponent(e) {
-            e.preventDefault();
-            const itemId = parseInt(document.getElementById('issue-item-select').value);
-            const qty = parseInt(document.getElementById('issue-qty').value);
-            const borrower = document.getElementById('issue-name').value.trim();
-            const faculty = document.getElementById('issue-faculty').value.trim();
-            const semester = document.getElementById('issue-semester').value.trim();
-            const reason = document.getElementById('issue-reason').value.trim();
-
-            const targetItem = storeData.find(item => item.id === itemId);
-            if (!targetItem || targetItem.available < qty) {
-                alert("Issuance Canceled:\nRequested unit count exceed current club assets available.");
-                return;
-            }
-
-            // Adjust values inside the stock array
-            targetItem.available -= qty;
-            targetItem.taken += qty;
-
-            // Push into historical record tracking logs array
-            transactionLogs.push({
-                id: Date.now(),
-                itemId: itemId,
-                date: new Date().toISOString(), // Use current timestamp
-                borrower: borrower,
-                faculty: faculty,
-                semester: semester,
-                qty: qty,
-                reason: reason || null, // Stores standard Null safely
-                status: "Active"
-            });
-
-            e.target.reset();
-            closeModal('issue-modal');
-            syncAndRender();
-        }
-
-        function returnItem(logId) {
-            const logEntry = transactionLogs.find(l => l.id === logId);
-            if (!logEntry) return;
-
-            const targetItem = storeData.find(item => item.id === logEntry.itemId);
-            if (targetItem) {
-                targetItem.available += logEntry.qty;
-                targetItem.taken -= logEntry.qty;
-            }
-
-            logEntry.status = "Returned";
-            syncAndRender();
-        }
-    </script>
+  <script src="vendor/supabase-2.118.0.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

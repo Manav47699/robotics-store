@@ -5,7 +5,8 @@ End-to-end checks of the database rules through the real Supabase API.
 Creates its own "__test__" components, checks every rule, then deletes them
 again (and the audit rows they produced), so it is safe to run on production.
 
-Usage:  python3 tests/api_test.py          (reads .env from the repo root)
+Usage:  python3 tests/api_test.py              (reads .env from the repo root)
+        python3 tests/api_test.py --cleanup    (only remove leftover __test__ rows)
 """
 import json, os, sys, uuid, datetime, threading, urllib.request, urllib.error, subprocess
 
@@ -216,6 +217,10 @@ def cleanup():
 
 
 if __name__ == "__main__":
+    if "--cleanup" in sys.argv:
+        cleanup()
+        print("cleaned up test rows")
+        sys.exit(0)
     try:
         cleanup()
         main()

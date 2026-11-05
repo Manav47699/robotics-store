@@ -1,0 +1,14 @@
+# Only the website is deployed. Everything else stays out of the public site.
+.github
+.githooks
+docs
+scripts
+supabase
+tests
+test-results
+backups
+tailwind.config.js
+assets/input.css
+.env*
+.gitleaks.toml
+*.md
