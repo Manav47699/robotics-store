@@ -1,16 +1,19 @@
 name: Nightly backup
 
-# Every night at 00:00 Nepal time (18:15 UTC):
+# Twice a day, 00:00 and 12:00 Nepal time (18:15 / 06:15 UTC):
 #   1. dump the database (SQL + CSV + Excel + manifest)
 #   2. restore it into a throwaway Postgres and verify it is complete
 #   3. push it to the PRIVATE backup repo (history = every previous night)
 #   4. keep an encrypted copy as a 90-day workflow artifact
-#   5. keep Supabase from pausing and this schedule from being auto-disabled
+#   5. keep Supabase from pausing and the schedules from being auto-disabled
+# The "Keep-alive & backup watchdog" workflow checks these backups stay fresh and
+# starts this workflow itself if one is missed.
 # This repo is PUBLIC: never print data in logs, never upload unencrypted artifacts.
 
 on:
   schedule:
     - cron: '15 18 * * *'
+    - cron: '15 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -45,20 +48,24 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_DEPLOY_KEY: ${{ secrets.BACKUP_DEPLOY_KEY }}
+          PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
         run: |
           missing=0
           [ -n "$SUPABASE_DB_URL" ]   || { echo "::error::Repository secret SUPABASE_DB_URL is not set"; missing=1; }
           [ -n "$BACKUP_DEPLOY_KEY" ] || { echo "::error::Repository secret BACKUP_DEPLOY_KEY is not set"; missing=1; }
+          [ -n "$PASSPHRASE" ] || echo "::warning::BACKUP_ENCRYPTION_PASSPHRASE is not set, so the encrypted off-repo copy is skipped"
           exit $missing
 
-      - name: Keep the schedule alive
+      - name: Keep the schedules alive
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          curl -fsS -X PUT -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/backup.yml/enable" \
-            && echo "workflow re-enabled (resets GitHub's 60-day inactivity timer)" || echo "::warning::keep-alive call failed"
+          for wf in backup.yml keepalive.yml; do
+            curl -fsS -X PUT -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$wf/enable" \
+              && echo "$wf re-enabled (resets GitHub's 60-day inactivity timer)" || echo "::warning::could not re-enable $wf"
+          done
 
       - name: Install PostgreSQL 17 client and openpyxl
         run: |
@@ -90,12 +97,8 @@ jobs:
           BACKUP_DEPLOY_KEY: ${{ secrets.BACKUP_DEPLOY_KEY }}
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$BACKUP_DEPLOY_KEY" > ~/.ssh/backup_key && chmod 600 ~/.ssh/backup_key
-          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          scripts/clone-backup-repo.sh backup-repo
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/backup_key -o IdentitiesOnly=yes"
-
-          for i in 1 2 3; do git clone -q --depth 50 "$BACKUP_REPO" backup-repo && break; sleep 20; done
           cd backup-repo
           rm -rf latest && mkdir latest && cp ../out/* latest/
           # A browsable monthly snapshot (first backup of each month), in addition to git history.
@@ -127,20 +130,17 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-      - name: Keep Supabase awake
+      - name: Keep Supabase awake (real database query)
         if: always()
-        run: |
-          url=$(grep -oE "https://[a-z0-9]+\.supabase\.co" js/config.js)
-          key=$(grep -oE "sb_publishable_[A-Za-z0-9_-]+" js/config.js)
-          curl -fsS -o /dev/null "$url/auth/v1/health" -H "apikey: $key" && echo "Supabase pinged" || echo "::warning::Supabase ping failed"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/keepalive.sh
 
       - name: Report failure
-        if: failure() && github.event_name == 'schedule'
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          title="Nightly backup failed ($(date -u +%Y-%m-%d))"
-          body="The nightly backup run failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          scripts/report-failure.sh "Backup is failing" "Failed run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          Open the run, read the red step, fix it, then use **Run workflow** on the Nightly backup page to re-run. See docs/OPERATIONS.md."
-          gh issue create --repo "${{ github.repository }}" --title "$title" --body "$body" || true
+          Open the run, read the first red step, fix it, then use **Run workflow** on the Nightly backup page. See docs/OPERATIONS.md." || true

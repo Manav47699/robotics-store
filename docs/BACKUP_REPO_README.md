@@ -2,12 +2,12 @@
 
 Nightly backups of the Robotics Club store database. **This repo must stay private** — it contains borrower names and roll numbers.
 
-A new backup is added every night at 00:00 Nepal time by the *Nightly backup* workflow in the main `robotics-store-management` repo. Before it is saved here, each backup is restored into a temporary database and checked, so every backup in this repo is known to be restorable.
+A new backup is added twice a day (00:00 and 12:00 Nepal time) by the *Nightly backup* workflow in the main `robotics-store-management` repo. Before it is saved here, each backup is restored into a temporary database and checked, so every backup in this repo is known to be restorable.
 
 ## What's here
 
 ```
-latest/                 ← last night's backup (overwritten nightly)
+latest/                 ← newest backup (overwritten every run)
 monthly/YYYY-MM/        ← first backup of each month, kept forever
 ```
 
@@ -23,7 +23,7 @@ Each backup folder contains:
 
 ## I need the data as it was on a specific day
 
-Every night is a separate commit. On GitHub: open `latest/`, click **History**, pick the date, then **Browse files** to download that night's files.
+Every backup is a separate commit. On GitHub: open `latest/`, click **History**, pick the date, then **Browse files** to download that night's files.
 
 ## I need to restore the database
 

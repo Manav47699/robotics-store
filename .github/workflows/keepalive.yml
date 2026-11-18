@@ -1,0 +1,77 @@
+name: Keep-alive & backup watchdog
+
+# Runs twice a day, independently of the backup itself:
+#   1. queries the database so Supabase never pauses the free project
+#   2. checks the newest backup is less than 26 hours old
+#   3. if it isn't (and the database is up), starts a backup straight away
+#   4. on any problem: email (failed run) + one GitHub issue
+# A third keep-alive runs on Vercel (api/keepalive.js), so even if GitHub Actions
+# stops, the database is still queried every day.
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+    - cron: '53 12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # re-enable schedules, start a backup run
+  issues: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Keep the schedules alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in backup.yml keepalive.yml; do
+            curl -fsS -X PUT -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$wf/enable" \
+              && echo "$wf enabled" || echo "::warning::could not re-enable $wf"
+          done
+
+      - name: Query the database (keeps Supabase awake)
+        id: db
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/keepalive.sh
+
+      - name: Check the newest backup is recent
+        id: fresh
+        if: always()
+        env:
+          BACKUP_DEPLOY_KEY: ${{ secrets.BACKUP_DEPLOY_KEY }}
+        run: |
+          scripts/clone-backup-repo.sh backup-repo 1
+          scripts/check-backup-fresh.sh backup-repo 26
+
+      - name: Start a backup now
+        if: always() && steps.fresh.outcome == 'failure' && steps.db.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/backup.yml/dispatches" \
+            -d '{"ref":"main"}' && echo "backup run started"
+
+      - name: Report problem
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/report-failure.sh "Database or backups need attention" "Watchdog run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          - database reachable: **${{ steps.db.outcome }}** (if failure: open https://supabase.com/dashboard and restore the project)
+          - backup fresh: **${{ steps.fresh.outcome }}** (if failure, a backup was started automatically when the database was up; check the Nightly backup runs)
+
+          See docs/OPERATIONS.md." || true

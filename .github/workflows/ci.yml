@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: 20
       - name: JavaScript syntax
-        run: for f in js/*.js tests/*.cjs; do node --check "$f"; done
+        run: for f in js/*.js tests/*.cjs api/*.js; do node --check "$f"; done
       - name: Shell & Python syntax
         run: |
           for f in scripts/*.sh .githooks/pre-commit; do bash -n "$f"; done

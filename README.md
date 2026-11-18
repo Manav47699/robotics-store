@@ -9,6 +9,6 @@ Inventory and issue ledger for the 11th Committee Robotics Club store.
 - **Bin** — things moved to the bin, restorable or permanently deletable
 - Changes appear on every open device instantly; Excel/JSON export from the menu
 
-Built as a static site on Vercel with Supabase (Postgres) for data and login. Backed up nightly to a private repo, with each backup restore-tested.
+Built as a static site on Vercel with Supabase (Postgres) for data and login. Backed up twice a day to a private repo (each backup restore-tested), with a watchdog that keeps the database awake and re-runs missed backups.
 
 See **[docs/OPERATIONS.md](docs/OPERATIONS.md)** for setup, maintenance, credentials and disaster recovery.
