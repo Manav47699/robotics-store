@@ -2,322 +2,300 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://dnvluspfcebqvulrdqoi.supabase.co wss://dnvluspfcebqvulrdqoi.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://dnvluspfcebqvulrdqoi.supabase.co wss://dnvluspfcebqvulrdqoi.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="robots" content="noindex, nofollow">
-  <title>11th Committee Robotics Club Store</title>
-  <link rel="icon" href="image_0.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#ffffff">
+  <title>Robotics Club Store</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="assets/app.css">
 </head>
-<body class="tech-grid min-h-screen flex flex-col text-gray-900">
+<body class="min-h-screen flex flex-col">
 
-  <!-- ───────────── Boot (shown until we know if you're logged in) ───────────── -->
   <div id="boot" class="flex-1 flex items-center justify-center">
-    <div class="text-center">
-      <div class="spinner mx-auto mb-4"></div>
-      <p class="tech-font text-sm text-gray-500">Connecting to store ledger…</p>
-    </div>
+    <div class="spinner" role="status" aria-label="Loading"></div>
   </div>
 
-  <!-- ───────────── Login ───────────── -->
+  <!-- Login -->
   <div id="login-page" class="hidden-section flex-1 flex items-center justify-center px-4 py-12">
-    <div class="login-card max-w-md w-full p-8 rounded-lg shadow-2xl border-2 border-gray-300">
-      <div class="text-center">
-        <img src="image_0.png" alt="Robotics Club Dharan logo" class="mx-auto h-24 w-auto mb-6">
-        <h1 class="text-2xl font-extrabold text-gray-950 tracking-tight">Store Access Control</h1>
-        <p class="mt-2 text-sm text-gray-600 font-medium">11th Committee Management Portal</p>
+    <div class="card w-full max-w-sm p-6 sm:p-8">
+      <div class="text-center mb-6">
+        <img src="assets/logo.png" alt="Robotics Club, Purwanchal Campus" class="mx-auto h-20 w-20 mb-4">
+        <h1 class="text-xl font-semibold text-slate-900">Robotics Club Store</h1>
+        <p class="mt-1 text-sm text-slate-500">11th Committee</p>
       </div>
-      <form id="login-form" class="mt-8 space-y-6" novalidate>
-        <div class="rounded-md shadow-inner space-y-4 bg-gray-50 p-6 border border-gray-200">
-          <div>
-            <label for="username" class="field-label">Username</label>
-            <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required class="field tech-font" placeholder="Username">
-          </div>
-          <div>
-            <label for="password" class="field-label">Password</label>
-            <div class="relative">
-              <input id="password" name="password" type="password" autocomplete="current-password" required class="field tech-font pr-16" placeholder="Password">
-              <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 text-xs font-bold text-gray-500 hover:text-gray-900 uppercase">Show</button>
-            </div>
+      <form id="login-form" class="space-y-4" novalidate>
+        <div>
+          <label for="username" class="field-label">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required class="field">
+        </div>
+        <div>
+          <label for="password" class="field-label">Password</label>
+          <div class="relative">
+            <input id="password" name="password" type="password" autocomplete="current-password" required class="field pr-16">
+            <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 text-sm font-medium text-slate-500 hover:text-slate-900">Show</button>
           </div>
         </div>
-        <p id="login-error" class="hidden-section text-red-700 text-sm text-center font-bold" role="alert"></p>
-        <button type="submit" id="login-submit" class="btn btn-dark w-full py-3 tracking-widest">Initialize Session</button>
+        <p id="login-error" class="hidden-section form-error" role="alert"></p>
+        <button type="submit" id="login-submit" class="btn btn-primary w-full">Log in</button>
       </form>
     </div>
   </div>
 
-  <!-- ───────────── App ───────────── -->
+  <!-- App -->
   <div id="app" class="hidden-section flex-1 flex flex-col">
-    <nav class="bg-gray-950 border-b-2 border-gray-800 sticky top-0 z-40 shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-2 flex flex-wrap gap-2 justify-between items-center">
-        <div class="flex items-center gap-3 min-w-0">
-          <img src="image_0.png" alt="" class="h-11 w-auto shrink-0">
-          <span class="font-bold text-lg text-white tracking-wider truncate">RC Store Ledger</span>
-          <span class="hidden sm:inline bg-blue-800 text-white text-xs font-bold px-3 py-1 rounded-full tech-font">11th Committee</span>
+    <header class="topbar">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <img src="assets/logo.png" alt="" class="h-9 w-9 shrink-0">
+          <div class="min-w-0 leading-tight">
+            <div class="font-semibold text-slate-900 truncate"><span class="sm:hidden">RC Store</span><span class="hidden sm:inline">Robotics Club Store</span></div>
+            <div class="hidden sm:block text-xs text-slate-500">11th Committee</div>
+          </div>
         </div>
-        <div class="flex items-center gap-3 sm:gap-5">
-          <span id="live-status" class="live-status tech-font text-xs text-gray-300 flex items-center gap-1.5" title="Connection status">
-            <span class="dot"></span><span class="label">Connecting</span>
-          </span>
+        <div class="flex items-center gap-1 shrink-0">
           <div class="relative">
-            <button id="export-btn" class="text-sm font-semibold text-gray-300 hover:text-white uppercase tracking-wider" aria-haspopup="true" aria-expanded="false">Export ▾</button>
-            <div id="export-menu" class="hidden-section absolute right-0 mt-2 w-56 bg-white border-2 border-gray-300 rounded-lg shadow-xl py-1 z-50">
-              <button data-export="xlsx" class="menu-item">Excel workbook (.xlsx)</button>
-              <button data-export="json" class="menu-item">Full data (.json)</button>
+            <button id="export-btn" class="topbar-btn" aria-haspopup="true" aria-expanded="false">
+              Export
+              <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+            </button>
+            <div id="export-menu" class="hidden-section menu" role="menu">
+              <button data-export="xlsx" class="menu-item" role="menuitem">Excel (.xlsx)</button>
+              <button data-export="json" class="menu-item" role="menuitem">JSON (.json)</button>
             </div>
           </div>
-          <button id="logout-btn" class="text-sm font-semibold text-gray-300 hover:text-red-400 uppercase tracking-wider">Log Out</button>
+          <button id="logout-btn" class="topbar-btn">Log out</button>
         </div>
       </div>
-    </nav>
+    </header>
 
-    <div id="conn-banner" class="hidden-section bg-amber-100 border-b-2 border-amber-300 text-amber-900 text-sm font-semibold px-4 py-2 text-center" role="status"></div>
+    <div id="conn-banner" class="hidden-section bg-amber-50 border-b border-amber-200 text-amber-900 text-sm px-4 py-2 text-center" role="status"></div>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
-      <!-- Summary -->
-      <div class="grid grid-cols-3 gap-3 sm:gap-4">
-        <div class="stat-card"><span class="stat-label">Components</span><span id="stat-components" class="stat-value">–</span></div>
-        <div class="stat-card"><span class="stat-label">Units in store</span><span id="stat-available" class="stat-value">–</span></div>
-        <div class="stat-card"><span class="stat-label">Units on loan</span><span id="stat-loaned" class="stat-value">–</span></div>
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-6">
+      <div class="grid grid-cols-3 gap-2 sm:gap-4">
+        <div class="stat"><span class="stat-label">Components</span><span id="stat-components" class="stat-value">–</span></div>
+        <div class="stat"><span class="stat-label">Available</span><span id="stat-available" class="stat-value">–</span></div>
+        <div class="stat"><span class="stat-label">On loan</span><span id="stat-loaned" class="stat-value">–</span></div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 sm:p-6 rounded-xl border-2 border-gray-300 bg-white shadow-xl">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">View:</span>
-          <div class="flex items-center gap-1 p-1 rounded-full bg-gray-100 border-2 border-gray-200" role="tablist">
-            <button class="view-tab" data-view="stock" role="tab">Stock List</button>
-            <button class="view-tab" data-view="logs" role="tab">Issue Logs</button>
-            <button class="view-tab" data-view="bin" role="tab">Bin <span id="bin-count" class="bin-count hidden-section"></span></button>
-          </div>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="seg grid grid-cols-3 md:inline-flex" role="tablist">
+          <button class="view-tab" data-view="stock" role="tab">Stock</button>
+          <button class="view-tab" data-view="logs" role="tab">Loans</button>
+          <button class="view-tab" data-view="bin" role="tab">Bin <span id="bin-count" class="bin-count hidden-section"></span></button>
         </div>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <input id="search" type="search" class="field tech-font sm:w-64" placeholder="Search…" aria-label="Search">
-          <div class="flex gap-3 write-only">
-            <button id="open-add" class="btn btn-primary flex-1 sm:flex-none">+ New Entry</button>
-            <button id="open-issue" class="btn btn-secondary flex-1 sm:flex-none">Issue Item</button>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="search" type="search" class="field sm:w-64" placeholder="Search" aria-label="Search">
+          <div class="grid grid-cols-2 sm:flex gap-2 write-only">
+            <button id="open-add" class="btn btn-primary">Add stock</button>
+            <button id="open-issue" class="btn btn-secondary">Issue</button>
           </div>
         </div>
       </div>
 
-      <!-- Stock list -->
-      <section id="view-stock" class="ledger-panel">
+      <section id="view-stock" class="panel">
         <div class="panel-head">
-          <h2 class="panel-title">Active Component Inventory</h2>
-          <span class="panel-tag">SECTION_A: Assets</span>
+          <h2 class="panel-title">Stock</h2>
         </div>
-        <div class="overflow-x-auto">
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th>Component</th>
-                <th>Date Added</th>
-                <th class="text-center">Registered (T)</th>
-                <th class="text-center">Available (A)</th>
-                <th class="text-center">Loaned (L)</th>
-                <th class="text-right write-only">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="stock-body"></tbody>
-          </table>
-        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Added</th>
+              <th class="text-right">Total</th>
+              <th class="text-right">Available</th>
+              <th class="text-right">On loan</th>
+              <th class="write-only"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="stock-body"></tbody>
+        </table>
         <p id="stock-empty" class="empty-state hidden-section"></p>
       </section>
 
-      <!-- Issue logs -->
-      <section id="view-logs" class="ledger-panel hidden-section">
+      <section id="view-logs" class="panel hidden-section">
         <div class="panel-head">
-          <h2 class="panel-title">Record of Issuances &amp; Loans</h2>
-          <div class="flex items-center gap-1 p-1 rounded-full bg-gray-100 border-2 border-gray-200">
+          <h2 class="panel-title">Loans</h2>
+          <div class="seg">
             <button class="filter-tab" data-filter="all">All</button>
             <button class="filter-tab" data-filter="active">On loan</button>
             <button class="filter-tab" data-filter="returned">Returned</button>
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th>Issued On</th>
-                <th>Borrower</th>
-                <th>Component / Qty</th>
-                <th class="text-center">Status</th>
-                <th class="text-right write-only">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="logs-body"></tbody>
-          </table>
-        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Issued</th>
+              <th>Borrower</th>
+              <th>Component</th>
+              <th class="text-right">Units</th>
+              <th>Status</th>
+              <th class="write-only"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="logs-body"></tbody>
+        </table>
         <p id="logs-empty" class="empty-state hidden-section"></p>
       </section>
 
-      <!-- Bin -->
-      <section id="view-bin" class="ledger-panel hidden-section">
+      <section id="view-bin" class="panel hidden-section">
         <div class="panel-head">
           <h2 class="panel-title">Bin</h2>
-          <span class="panel-tag">SECTION_C: Removed</span>
         </div>
-        <p class="text-sm text-gray-600 mb-6">Items in the bin are hidden from stock and logs but can be restored. <strong>Anything left in the bin for 60 days is deleted automatically.</strong> <strong>Delete permanently</strong> removes them from the site for good straight away.</p>
+        <p class="text-sm text-slate-600 mb-6">Items in the bin can be restored. They are deleted permanently after 60 days.</p>
 
         <h3 class="sub-title">Components</h3>
-        <div class="overflow-x-auto mb-8">
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th>Component</th>
-                <th class="text-center">Registered (T)</th>
-                <th>Moved to bin</th>
-                <th class="text-right write-only">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="bin-components-body"></tbody>
-          </table>
-          <p id="bin-components-empty" class="empty-state hidden-section">No components in the bin.</p>
-        </div>
+        <table class="data-table mb-8">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th class="text-right">Total</th>
+              <th>Moved to bin</th>
+              <th class="write-only"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="bin-components-body"></tbody>
+        </table>
+        <p id="bin-components-empty" class="empty-state hidden-section">No components in the bin.</p>
 
-        <h3 class="sub-title">Issue records</h3>
-        <div class="overflow-x-auto">
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th>Issued On</th>
-                <th>Borrower</th>
-                <th>Component / Qty</th>
-                <th>Moved to bin</th>
-                <th class="text-right write-only">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="bin-issues-body"></tbody>
-          </table>
-          <p id="bin-issues-empty" class="empty-state hidden-section">No issue records in the bin.</p>
-        </div>
+        <h3 class="sub-title">Loan records</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Issued</th>
+              <th>Borrower</th>
+              <th>Component</th>
+              <th class="text-right">Units</th>
+              <th>Moved to bin</th>
+              <th class="write-only"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="bin-issues-body"></tbody>
+        </table>
+        <p id="bin-issues-empty" class="empty-state hidden-section">No loan records in the bin.</p>
       </section>
 
-      <p id="last-sync" class="text-xs text-gray-500 tech-font text-right"></p>
+      <p id="last-sync" class="text-xs text-slate-400 text-right num"></p>
     </main>
   </div>
 
-  <!-- ───────────── Modal: New entry ───────────── -->
+  <!-- Add stock -->
   <div id="modal-add" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="modal-add-title" class="modal-title">Register New Inventory Entry</h3>
+        <h3 id="modal-add-title" class="modal-title">Add stock</h3>
         <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
       </div>
-      <form id="form-add" class="space-y-5" novalidate>
+      <form id="form-add" class="space-y-4" novalidate>
         <div>
-          <label for="add-name" class="field-label">Component Name</label>
-          <input id="add-name" type="text" list="component-names" maxlength="120" required autocomplete="off" class="field tech-font" placeholder="e.g., L298N Motor Driver">
+          <label for="add-name" class="field-label">Component</label>
+          <input id="add-name" type="text" list="component-names" maxlength="120" required autocomplete="off" class="field" placeholder="e.g. L298N Motor Driver">
           <datalist id="component-names"></datalist>
           <p id="add-name-hint" class="field-hint"></p>
         </div>
         <div>
           <label for="add-units" class="field-label">Units</label>
-          <input id="add-units" type="number" inputmode="numeric" min="1" max="100000" step="1" required class="field tech-font" placeholder="0">
+          <input id="add-units" type="number" inputmode="numeric" min="1" max="100000" step="1" required class="field num">
         </div>
         <div class="date-field" data-date-field="add">
-          <span class="field-label">Date Added</span>
+          <span class="field-label">Date added</span>
           <div class="flex gap-2">
-            <button type="button" class="date-mode" data-mode="today">Added today</button>
-            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+            <button type="button" class="date-mode" data-mode="today">Today</button>
+            <button type="button" class="date-mode" data-mode="custom">Other date</button>
           </div>
-          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date added">
+          <input type="date" class="field mt-2 hidden-section" aria-label="Date added">
           <p class="field-hint date-preview"></p>
         </div>
         <p class="form-error hidden-section" role="alert"></p>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close>Cancel</button>
-          <button type="submit" class="btn btn-primary">Commit Entry</button>
+          <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ───────────── Modal: Issue ───────────── -->
+  <!-- Issue -->
   <div id="modal-issue" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-issue-title">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="modal-issue-title" class="modal-title">Issue Component Form</h3>
+        <h3 id="modal-issue-title" class="modal-title">Issue a component</h3>
         <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
       </div>
       <form id="form-issue" class="space-y-4" novalidate>
         <div>
           <label for="issue-component" class="field-label">Component</label>
-          <select id="issue-component" required class="field tech-font bg-white"></select>
+          <select id="issue-component" required class="field"></select>
           <p id="issue-none" class="field-hint text-red-700 hidden-section">Nothing is available to issue right now.</p>
         </div>
         <div>
           <label for="issue-units" class="field-label">Units</label>
-          <input id="issue-units" type="number" inputmode="numeric" min="1" step="1" value="1" required class="field tech-font">
+          <input id="issue-units" type="number" inputmode="numeric" min="1" step="1" value="1" required class="field num">
           <p id="issue-units-hint" class="field-hint"></p>
         </div>
-        <hr class="border-gray-200">
         <div>
-          <label for="issue-name" class="field-label">Borrower's Full Name</label>
-          <input id="issue-name" type="text" maxlength="120" required autocomplete="off" class="field tech-font" placeholder="Full name">
+          <label for="issue-name" class="field-label">Borrower's name</label>
+          <input id="issue-name" type="text" maxlength="120" required autocomplete="off" class="field" placeholder="Full name">
         </div>
         <div>
-          <label for="issue-roll" class="field-label">Borrower's Roll Number</label>
-          <input id="issue-roll" type="text" maxlength="30" required autocomplete="off" autocapitalize="characters" spellcheck="false" class="field tech-font" placeholder="080bei013">
+          <label for="issue-roll" class="field-label">Roll number</label>
+          <input id="issue-roll" type="text" maxlength="30" required autocomplete="off" autocapitalize="characters" spellcheck="false" class="field" placeholder="080bei013">
           <p id="issue-roll-hint" class="field-hint text-amber-700"></p>
         </div>
         <div class="date-field" data-date-field="issue">
-          <span class="field-label">Date Issued</span>
+          <span class="field-label">Date issued</span>
           <div class="flex gap-2">
-            <button type="button" class="date-mode" data-mode="today">Issued today</button>
-            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+            <button type="button" class="date-mode" data-mode="today">Today</button>
+            <button type="button" class="date-mode" data-mode="custom">Other date</button>
           </div>
-          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date issued">
+          <input type="date" class="field mt-2 hidden-section" aria-label="Date issued">
           <p class="field-hint date-preview"></p>
         </div>
         <p class="form-error hidden-section" role="alert"></p>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close>Cancel</button>
-          <button type="submit" class="btn btn-primary">Log Transaction</button>
+          <button type="submit" class="btn btn-primary">Issue</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ───────────── Modal: Return ───────────── -->
+  <!-- Return -->
   <div id="modal-return" class="modal hidden-section" role="dialog" aria-modal="true" aria-labelledby="modal-return-title">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="modal-return-title" class="modal-title">Mark as Returned</h3>
+        <h3 id="modal-return-title" class="modal-title">Mark as returned</h3>
         <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
       </div>
-      <form id="form-return" class="space-y-5" novalidate>
-        <p id="return-summary" class="text-sm text-gray-800"></p>
+      <form id="form-return" class="space-y-4" novalidate>
+        <p id="return-summary" class="text-sm text-slate-700"></p>
         <div class="date-field" data-date-field="return">
-          <span class="field-label">Date Returned</span>
+          <span class="field-label">Date returned</span>
           <div class="flex gap-2">
-            <button type="button" class="date-mode" data-mode="today">Returned today</button>
-            <button type="button" class="date-mode" data-mode="custom">Pick a date</button>
+            <button type="button" class="date-mode" data-mode="today">Today</button>
+            <button type="button" class="date-mode" data-mode="custom">Other date</button>
           </div>
-          <input type="date" class="field tech-font mt-2 hidden-section" aria-label="Date returned">
+          <input type="date" class="field mt-2 hidden-section" aria-label="Date returned">
           <p class="field-hint date-preview"></p>
         </div>
         <p class="form-error hidden-section" role="alert"></p>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close>Cancel</button>
-          <button type="submit" class="btn btn-primary">Confirm Return</button>
+          <button type="submit" class="btn btn-primary">Mark returned</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ───────────── Modal: Confirm ───────────── -->
+  <!-- Confirm -->
   <div id="modal-confirm" class="modal hidden-section" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="confirm-title" class="modal-title"></h3>
         <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
       </div>
-      <div id="confirm-body" class="text-sm text-gray-800 space-y-2"></div>
+      <div id="confirm-body" class="text-sm text-slate-700 space-y-2 mb-5"></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-close>Cancel</button>
         <button type="button" id="confirm-ok" class="btn btn-primary"></button>
@@ -327,7 +305,7 @@
 
   <div id="toasts" class="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 items-stretch sm:items-end" aria-live="polite"></div>
 
-  <noscript><p class="p-8 text-center font-bold">This site needs JavaScript enabled.</p></noscript>
+  <noscript><p class="p-8 text-center">This site needs JavaScript.</p></noscript>
 
   <script src="vendor/supabase-2.118.0.js"></script>
   <script src="js/config.js"></script>

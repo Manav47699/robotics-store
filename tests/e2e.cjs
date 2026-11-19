@@ -56,6 +56,7 @@ async function login(page, user = USER, pass = PASS) {
 }
 
 const row = (page, tbody, text) => page.locator(`${tbody} tr`, { hasText: text });
+const cell = (page, tbody, text, label) => row(page, tbody, text).locator(`td[data-label="${label}"]`).innerText();
 const toastText = (page) => page.locator('#toasts').innerText();
 
 async function main() {
@@ -70,33 +71,33 @@ async function main() {
   await page.screenshot({ path: `${SHOTS}/01-login.png` });
   await login(page, USER, PASS + 'wrong');
   await page.waitForSelector('#login-error:not(.hidden-section)');
-  check('wrong password shows an error', (await page.innerText('#login-error')).includes('Authentication failed'));
+  check('wrong password shows an error', (await page.innerText('#login-error')).includes('Incorrect username or password'));
   await login(page, USER.toUpperCase(), PASS);
   await page.waitForSelector('#app:not(.hidden-section)', { timeout: 15000 });
   check('correct login opens the ledger (username not case-sensitive)', true);
-  await page.waitForSelector('#live-status.live', { timeout: 20000 }).catch(() => {});
-  check('realtime connection is live', await page.isVisible('#live-status.live'));
+  await page.waitForSelector('body[data-realtime=live]', { state: 'attached', timeout: 20000 }).catch(() => {});
+  check('realtime connection is live', (await page.getAttribute('body', 'data-realtime')) === 'live');
 
   console.log('New entry');
   await page.click('#open-add');
   await page.fill('#add-name', `${T}Arduino Uno`);
   await page.fill('#add-units', '5');
-  check('"Added today" is the default date', (await page.innerText('[data-date-field=add] .date-mode.active')).includes('today'));
+  check('"Today" is the default date', (await page.innerText('[data-date-field=add] .date-mode.active')) === 'Today');
   await page.screenshot({ path: `${SHOTS}/02-add-modal.png` });
   await page.click('#form-add button[type=submit]');
   await row(page, '#stock-body', `${T}Arduino Uno`).waitFor();
-  check('component appears with 5 units', (await row(page, '#stock-body', `${T}Arduino Uno`).innerText()).includes('5 Units'));
+  check('component appears with 5 units', (await cell(page, '#stock-body', `${T}Arduino Uno`, 'Available')) === '5');
 
   await page.click('#open-add');
   await page.fill('#add-name', `${T.toUpperCase()}arduino uno`);
-  check('hint says it adds to existing stock', (await page.innerText('#add-name-hint')).includes('Adds to existing stock'));
+  check('hint says it adds to existing stock', (await page.innerText('#add-name-hint')).includes('Adds to the existing'));
   await page.fill('#add-units', '3');
   await page.click('[data-date-field=add] [data-mode=custom]');
   await page.fill('[data-date-field=add] input[type=date]', '2026-01-15');
   await page.click('#form-add button[type=submit]');
-  await page.waitForFunction((t) => [...document.querySelectorAll('#stock-body tr')].some((r) => r.innerText.includes(t) && r.innerText.includes('8 Units')), `${T}Arduino Uno`);
+  await page.waitForFunction((t) => [...document.querySelectorAll('#stock-body tr')].some((r) => r.innerText.includes(t) && r.querySelector('td[data-label=Total]').textContent === '8'), `${T}Arduino Uno`);
   const r1 = await row(page, '#stock-body', `${T}Arduino Uno`).innerText();
-  check('same name adds to stock (total 8) and keeps earliest date', r1.includes('8 Units') && r1.includes('15 Jan 2026'), r1);
+  check('same name adds to stock (total 8) and keeps earliest date', (await cell(page, '#stock-body', `${T}Arduino Uno`, 'Available')) === '8' && r1.includes('15 Jan 2026'), r1);
 
   await page.click('#open-add');
   await page.fill('#add-name', `${T}Servo`);
@@ -114,7 +115,7 @@ async function main() {
 
   console.log('Issue');
   await page.click('#open-issue');
-  await page.selectOption('#issue-component', { label: `${T}Arduino Uno — 8 available` });
+  await page.selectOption('#issue-component', { label: `${T}Arduino Uno (8 available)` });
   await page.fill('#issue-units', '9');
   await page.fill('#issue-name', 'Test Borrower');
   await page.fill('#issue-roll', '080bei013');
@@ -125,10 +126,10 @@ async function main() {
   await page.screenshot({ path: `${SHOTS}/03-issue-modal.png` });
   await page.click('#form-issue button[type=submit]');
   await page.waitForFunction(() => document.querySelector('#modal-issue').classList.contains('hidden-section'));
-  check('available drops to 6', (await row(page, '#stock-body', `${T}Arduino Uno`).innerText()).includes('6 Units'));
+  check('available drops to 6', (await cell(page, '#stock-body', `${T}Arduino Uno`, 'Available')) === '6');
   await page.click('[data-view=logs]');
   const log1 = await row(page, '#logs-body', 'Test Borrower').innerText();
-  check('log shows borrower, roll (uppercased), units, on loan', log1.includes('080BEI013') && log1.includes('2 Units') && log1.includes('On loan'), log1);
+  check('log shows borrower, roll (uppercased), units, on loan', log1.includes('080BEI013') && (await cell(page, '#logs-body', 'Test Borrower', 'Units')) === '2' && log1.includes('On loan'), log1);
 
   await page.click('[data-view=stock]');
   await row(page, '#stock-body', `${T}Servo`).locator('.act-issue').click();
@@ -162,7 +163,7 @@ async function main() {
   await page.click('[data-view=stock]');
   await row(page, '#stock-body', `${T}Servo`).locator('.act-bin').click();
   await page.waitForTimeout(300);
-  check('binning a component with an active loan is blocked', (await toastText(page)).includes('out on loan'));
+  check('binning a component with an active loan is blocked', (await toastText(page)).includes('on loan. Mark them returned'));
   await page.click('[data-view=logs]');
   await row(page, '#logs-body', 'Odd Roll').locator('.act-bin').click();
   await page.click('#confirm-ok');
@@ -193,7 +194,7 @@ async function main() {
   const second = await newPage(browser, { width: 390, height: 844 });
   await login(second.page);
   await second.page.waitForSelector('#app:not(.hidden-section)');
-  await second.page.waitForSelector('#live-status.live', { timeout: 20000 }).catch(() => {});
+  await second.page.waitForSelector('body[data-realtime=live]', { state: 'attached', timeout: 20000 }).catch(() => {});
   await page.click('[data-view=stock]');
   await page.click('#open-add');
   await page.fill('#add-name', `${T}Live Sync Part`);

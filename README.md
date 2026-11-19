@@ -4,10 +4,10 @@ Inventory and issue ledger for the 11th Committee Robotics Club store.
 
 **Live:** https://robotics-store-management.vercel.app
 
-- **Stock List**: every component with total, available and on-loan units
-- **Issue Logs**: who borrowed what (name, roll number, date) and when it came back
+- **Stock**: every component with total, available and on-loan units
+- **Loans**: who borrowed what (name, roll number, date) and when it came back
 - **Bin**: removed items, restorable for 60 days, then deleted automatically
-- Changes show up on every open device instantly. Excel/JSON export from the menu.
+- Changes show up on every open device instantly. Excel/JSON export from the header.
 
 Static site on Vercel, Supabase (Postgres) for data and login. The database is backed up twice a day to a private repo, and every backup is restore-tested before it is saved.
 

@@ -1,5 +1,5 @@
 /* =====================================================================
-   RoboStore — 11th Committee Robotics Club store ledger
+   Robotics Club store ledger (11th Committee)
    All data lives in Supabase. Every write goes through a database function
    that re-checks the rules, so the browser can never corrupt the ledger.
    ===================================================================== */
@@ -98,11 +98,11 @@
 
   function errMsg(e) {
     if (!e) return 'Something went wrong.';
-    if (isNetworkError(e)) return "Couldn't reach the server. Nothing was saved — check your internet and try again.";
+    if (isNetworkError(e)) return "Couldn't reach the server. Nothing was saved. Check your connection and try again.";
     const m = String(e.message || e);
     if (/JWT|token is expired|PGRST30[0-3]/i.test(m + (e.code || ''))) return 'Your session expired. Please log in again.';
     if (e.code === '23505') return 'That already exists.';
-    if (e.code === '57014') return 'The server took too long. Nothing was saved — try again.';
+    if (e.code === '57014') return 'The server took too long. Nothing was saved, try again.';
     if (e.code === '55P03' || /lock timeout/i.test(m)) return 'Someone else is updating this item right now. Try again in a moment.';
     return m;
   }
@@ -182,21 +182,15 @@
     const banner = $('#conn-banner');
     if (on) { show(banner, false); return; }
     banner.textContent = state.lastSync
-      ? `Offline — showing data saved at ${fmtDateTime(state.lastSync)}. Changes are disabled until the connection returns.`
-      : 'Offline — cannot reach the server. Changes are disabled until the connection returns.';
+      ? `You're offline. Showing data from ${fmtDateTime(state.lastSync)}. Changes are turned off until the connection is back.`
+      : "You're offline. Changes are turned off until the connection is back.";
     show(banner, true);
     setLive('offline');
   }
 
   // ─────────────────────────── Realtime ───────────────────────────
-  function setLive(status) {
-    const s = $('#live-status');
-    s.classList.remove('live', 'reconnecting', 'offline');
-    const label = { live: 'Live', reconnecting: 'Reconnecting', offline: 'Offline' }[status] || 'Connecting';
-    if (status) s.classList.add(status);
-    $('.label', s).textContent = label;
-    s.title = status === 'live' ? 'Changes from other devices appear automatically' : 'Connection status';
-  }
+  // Realtime state is kept on <body data-realtime="…"> (no visible indicator).
+  function setLive(status) { document.body.dataset.realtime = status; }
 
   function subscribe() {
     unsubscribe();
@@ -264,7 +258,7 @@
     show(err, false);
     if (!username || !password) { err.textContent = 'Enter your username and password.'; show(err); return; }
 
-    btn.disabled = true; btn.textContent = 'Verifying…';
+    btn.disabled = true; btn.textContent = 'Logging in…';
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email: `${username}@${cfg.loginDomain}`, password });
       if (error) throw error;
@@ -277,11 +271,11 @@
       enterApp(data.session);
     } catch (ex) {
       err.textContent = /invalid login credentials/i.test(ex.message || '')
-        ? 'Authentication failed. Please verify credentials.'
+        ? 'Incorrect username or password.'
         : errMsg(ex);
       show(err);
     } finally {
-      btn.disabled = false; btn.textContent = 'Initialize Session';
+      btn.disabled = false; btn.textContent = 'Log in';
     }
   });
 
@@ -340,63 +334,71 @@
     const dl = $('#component-names');
     dl.replaceChildren(...active.map((c) => el('option', { value: c.name })));
 
-    $('#last-sync').textContent = state.lastSync ? `Last synced ${fmtDateTime(state.lastSync)}` : '';
+    $('#last-sync').textContent = state.lastSync ? `Updated ${fmtDateTime(state.lastSync)}` : '';
   }
 
-  function emptyMsg(node, shown, total, noun) {
-    node.textContent = total === 0 ? `No ${noun} yet.` : 'Nothing matches your search.';
+  function emptyMsg(node, shown, total, emptyText) {
+    node.textContent = total === 0 ? emptyText : 'Nothing matches your search.';
     show(node, shown === 0);
   }
 
-  function renderStock(rows, total) {
-    const body = $('#stock-body');
-    body.replaceChildren(...rows.map((c) => el('tr', {},
-      el('td', { class: 'font-bold text-gray-950', text: c.name }),
-      el('td', { class: 'tech-font text-gray-600 whitespace-nowrap', text: fmtDate(c.date_added) }),
-      el('td', { class: 'text-center tech-font text-gray-600', text: c.total_units }),
-      el('td', { class: 'text-center' },
-        el('span', { class: `pill ${c.available_units > 0 ? 'pill-ok' : 'pill-none'}`, text: `${c.available_units} Units` })),
-      el('td', { class: 'text-center tech-font text-gray-600', text: c.loaned_units }),
-      el('td', { class: 'text-right write-only' },
-        el('div', { class: 'flex gap-2 justify-end' },
-          el('button', { class: 'act act-issue', text: 'Issue', disabled: c.available_units < 1, onclick: () => openIssue(c.id) }),
-          el('button', { class: 'act act-bin', text: 'Move to bin', onclick: () => binComponent(c) }),
-          el('button', { class: 'act act-delete', text: 'Delete permanently', onclick: () => deleteComponent(c) }),
-        )),
-    )));
-    emptyMsg($('#stock-empty'), rows.length, total, 'components — use “+ New Entry” to add one');
+  /** Copies each column header onto its cells, used as the label in the stacked phone layout. */
+  function fillRows(tbody, rows) {
+    tbody.replaceChildren(...rows);
+    const heads = $$('thead th', tbody.closest('table')).map((th) => th.textContent.trim());
+    for (const tr of tbody.rows) for (const [i, td] of [...tr.cells].entries()) td.dataset.label = heads[i] || '';
   }
 
-  function borrowerCell(i) {
-    return el('td', { class: 'whitespace-nowrap' },
-      el('div', { class: 'font-bold text-gray-950', text: i.borrower_name }),
-      el('div', { class: 'tech-font text-xs text-gray-500', text: i.roll_number }));
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const td = (cls, ...children) => el('td', { class: cls }, ...children);
+  const actions = (...buttons) => td('cell-actions write-only', el('div', { class: 'actions' }, ...buttons));
+  const btn = (cls, text, onclick, extra = {}) => el('button', { class: `act ${cls}`, text, onclick, ...extra });
+
+  function renderStock(rows, total) {
+    fillRows($('#stock-body'), rows.map((c) => el('tr', {},
+      td('cell-title cell-main', c.name),
+      td('text-slate-600 whitespace-nowrap num', fmtDate(c.date_added)),
+      td('text-right num', String(c.total_units)),
+      td('text-right', el('span', { class: `pill ${c.available_units > 0 ? 'pill-ok' : 'pill-none'}`, text: String(c.available_units) })),
+      td('text-right num', String(c.loaned_units)),
+      actions(
+        btn('act-issue', 'Issue', () => openIssue(c.id), { disabled: c.available_units < 1 }),
+        btn('act-bin', 'Move to bin', () => binComponent(c)),
+        btn('act-delete', 'Delete', () => deleteComponent(c), { title: 'Delete permanently' }),
+      ),
+    )));
+    emptyMsg($('#stock-empty'), rows.length, total, 'No components yet. Use "Add stock" to add the first one.');
+  }
+
+  function borrowerCell(i, cls = '') {
+    return td(cls, el('div', {},
+      el('div', { class: 'cell-main', text: i.borrower_name }),
+      el('div', { class: 'cell-sub num', text: i.roll_number })));
   }
   function componentCell(i, byId) {
     const c = byId.get(i.component_id);
-    return el('td', { class: 'font-bold text-gray-900' },
+    return td('',
       c ? c.name : 'Unknown component',
-      c?.binned_at ? el('span', { class: 'text-xs text-gray-500 font-normal', text: ' (in bin)' }) : null,
-      ' / ', el('span', { class: 'tech-font', text: `${i.units} Unit${i.units === 1 ? '' : 's'}` }));
+      c?.binned_at ? el('span', { class: 'cell-sub', text: ' (in bin)' }) : null);
   }
 
   function renderLogs(rows, byId, total) {
-    $('#logs-body').replaceChildren(...rows.map((i) => el('tr', {},
-      el('td', { class: 'tech-font font-bold text-gray-600 whitespace-nowrap', text: fmtDate(i.issued_on) }),
+    fillRows($('#logs-body'), rows.map((i) => el('tr', {},
+      td('text-slate-600 whitespace-nowrap num', fmtDate(i.issued_on)),
       borrowerCell(i),
       componentCell(i, byId),
-      el('td', { class: 'text-center whitespace-nowrap' },
+      td('text-right num', String(i.units)),
+      td('whitespace-nowrap',
         i.returned_on
           ? el('span', { class: 'pill pill-returned', text: `Returned ${fmtDate(i.returned_on)}` })
-          : el('span', { class: 'pill bg-amber-50 text-amber-800 border border-amber-200', text: 'On loan' })),
-      el('td', { class: 'text-right write-only' },
-        el('div', { class: 'flex gap-2 justify-end' },
-          i.returned_on ? null : el('button', { class: 'act act-return', text: 'Return', onclick: () => openReturn(i) }),
-          el('button', { class: 'act act-bin', text: 'Move to bin', onclick: () => binIssue(i, byId) }),
-          el('button', { class: 'act act-delete', text: 'Delete permanently', onclick: () => deleteIssue(i, byId) }),
-        )),
+          : el('span', { class: 'pill pill-loan', text: 'On loan' })),
+      actions(
+        i.returned_on ? null : btn('act-return', 'Return', () => openReturn(i)),
+        btn('act-bin', 'Move to bin', () => binIssue(i, byId)),
+        btn('act-delete', 'Delete', () => deleteIssue(i, byId), { title: 'Delete permanently' }),
+      ),
     )));
-    emptyMsg($('#logs-empty'), rows.length, total, 'issue records');
+    emptyMsg($('#logs-empty'), rows.length, total, 'No loans yet.');
   }
 
   // Must match the interval in purge_bin() (migration 0004).
@@ -404,34 +406,33 @@
   function binnedCell(iso) {
     const purge = new Date(new Date(iso).getTime() + BIN_RETENTION_DAYS * 86400000);
     const at = `${String(purge.getDate()).padStart(2, '0')} ${MONTHS[purge.getMonth()]} ${purge.getFullYear()}`;
-    return el('td', { class: 'tech-font text-gray-600 whitespace-nowrap' },
-      el('div', { text: fmtDateTime(iso) }),
-      el('div', { class: 'text-xs text-gray-500', text: `Auto-deletes ${at}` }));
+    return td('whitespace-nowrap', el('div', {},
+      el('div', { class: 'num', text: fmtDateTime(iso) }),
+      el('div', { class: 'cell-sub', text: `Deleted on ${at}` })));
   }
 
   function renderBin(comps, issues, byId) {
-    $('#bin-components-body').replaceChildren(...comps.map((c) => el('tr', {},
-      el('td', { class: 'font-bold text-gray-950', text: c.name }),
-      el('td', { class: 'text-center tech-font text-gray-600', text: c.total_units }),
+    fillRows($('#bin-components-body'), comps.map((c) => el('tr', {},
+      td('cell-title cell-main', c.name),
+      td('text-right num', String(c.total_units)),
       binnedCell(c.binned_at),
-      el('td', { class: 'text-right write-only' },
-        el('div', { class: 'flex gap-2 justify-end' },
-          el('button', { class: 'act act-restore', text: 'Restore', onclick: (e) => restore('component', c.id, c.name, e.currentTarget) }),
-          el('button', { class: 'act act-delete', text: 'Delete permanently', onclick: () => deleteComponent(c) }),
-        )),
+      actions(
+        btn('act-restore', 'Restore', (e) => restore('component', c.id, c.name, e.currentTarget)),
+        btn('act-delete', 'Delete', () => deleteComponent(c), { title: 'Delete permanently' }),
+      ),
     )));
     show($('#bin-components-empty'), comps.length === 0);
 
-    $('#bin-issues-body').replaceChildren(...issues.map((i) => el('tr', {},
-      el('td', { class: 'tech-font font-bold text-gray-600 whitespace-nowrap', text: fmtDate(i.issued_on) }),
+    fillRows($('#bin-issues-body'), issues.map((i) => el('tr', {},
+      td('text-slate-600 whitespace-nowrap num', fmtDate(i.issued_on)),
       borrowerCell(i),
       componentCell(i, byId),
+      td('text-right num', String(i.units)),
       binnedCell(i.binned_at),
-      el('td', { class: 'text-right write-only' },
-        el('div', { class: 'flex gap-2 justify-end' },
-          el('button', { class: 'act act-restore', text: 'Restore', onclick: (e) => restore('issue', i.id, `${i.borrower_name}'s record`, e.currentTarget) }),
-          el('button', { class: 'act act-delete', text: 'Delete permanently', onclick: () => deleteIssue(i, byId) }),
-        )),
+      actions(
+        btn('act-restore', 'Restore', (e) => restore('issue', i.id, `${i.borrower_name}'s record`, e.currentTarget)),
+        btn('act-delete', 'Delete', () => deleteIssue(i, byId), { title: 'Delete permanently' }),
+      ),
     )));
     show($('#bin-issues-empty'), issues.length === 0);
   }
@@ -490,7 +491,7 @@
 
   /** Runs a write. Disables the button, shows errors, refreshes data on success. */
   async function mutate(button, fn, { form, success } = {}) {
-    if (!state.online) { toast('You are offline. Changes are disabled until the connection returns.', 'error'); return false; }
+    if (!state.online) { toast("You're offline. Changes are turned off until the connection is back.", 'error'); return false; }
     const label = button?.textContent;
     if (button) { button.disabled = true; button.textContent = 'Saving…'; }
     if (form) formError(form, '');
@@ -557,8 +558,8 @@
     const existing = state.components.find((c) => c.name.toLowerCase() === name);
     $('#add-name-hint').textContent = !name ? '' : existing
       ? existing.binned_at
-        ? `"${existing.name}" is in the bin — restore it from the Bin page instead.`
-        : `Adds to existing stock of "${existing.name}" (currently ${existing.total_units}).`
+        ? `"${existing.name}" is in the bin. Restore it from the Bin instead.`
+        : `Adds to the existing "${existing.name}" (${existing.total_units} now).`
       : 'New component.';
   }
   $('#add-name').addEventListener('input', updateAddHint);
@@ -589,7 +590,7 @@
     const prev = preselect ?? Number(sel.value);
     sel.replaceChildren(
       el('option', { value: '', text: avail.length ? 'Select a component…' : 'Nothing available' }),
-      ...avail.map((c) => el('option', { value: c.id, text: `${c.name} — ${c.available_units} available` })),
+      ...avail.map((c) => el('option', { value: c.id, text: `${c.name} (${c.available_units} available)` })),
     );
     if (avail.some((c) => c.id === prev)) sel.value = String(prev);
     show($('#issue-none'), avail.length === 0);
@@ -633,7 +634,7 @@
     if (!roll) return formError(f, "Borrower's roll number is required.");
     const dErr = checkDate(date, 'Issue date'); if (dErr) return formError(f, dErr);
     if (!ROLL_RE.test(roll) && !f.dataset.rollConfirmed) {
-      $('#issue-roll-hint').textContent = `"${roll}" doesn't look like a roll number (e.g. 080BEI013). Press "Log Transaction" again to save it anyway.`;
+      $('#issue-roll-hint').textContent = `"${roll}" doesn't look like a roll number (e.g. 080BEI013). Press "Issue" again to save it anyway.`;
       f.dataset.rollConfirmed = '1';
       return;
     }
@@ -697,12 +698,12 @@
   // ─── Bin / restore / delete ───
   async function binComponent(c) {
     if (c.loaned_units > 0) {
-      toast(`"${c.name}" still has ${c.loaned_units} unit(s) out on loan. Mark them returned (or bin those records) first.`, 'error');
+      toast(`"${c.name}" has ${plural(c.loaned_units, 'unit')} on loan. Mark them returned first.`, 'error');
       return;
     }
     if (!await confirmDialog({
       title: 'Move to bin?',
-      body: [`"${c.name}" (${c.total_units} units) will be hidden from the stock list. You can restore it from the Bin.`],
+      body: [`"${c.name}" (${plural(c.total_units, 'unit')}) will be hidden from the stock list. You can restore it from the Bin within 60 days.`],
       ok: 'Move to bin',
     })) return;
     await mutate(null, () => sb.rpc('move_to_bin', { p_kind: 'component', p_id: c.id }), { success: `Moved "${c.name}" to the bin` });
@@ -711,14 +712,14 @@
   async function binIssue(i, byId) {
     const c = byId.get(i.component_id);
     if (!await confirmDialog({
-      title: 'Move record to bin?',
+      title: 'Move this loan to the bin?',
       body: [
-        `${i.borrower_name}'s record (${i.units} × ${c ? c.name : 'component'}, ${fmtDate(i.issued_on)}) will be hidden from the logs. You can restore it from the Bin.`,
-        i.returned_on ? '' : 'This item is still on loan — binning the record puts its units back in stock.',
+        `${i.borrower_name}'s loan (${i.units} × ${c ? c.name : 'component'}, ${fmtDate(i.issued_on)}) will be hidden. You can restore it from the Bin within 60 days.`,
+        i.returned_on ? '' : "It hasn't been returned yet. Binning it puts the units back in stock.",
       ].filter(Boolean),
       ok: 'Move to bin',
     })) return;
-    await mutate(null, () => sb.rpc('move_to_bin', { p_kind: 'issue', p_id: i.id }), { success: 'Record moved to the bin' });
+    await mutate(null, () => sb.rpc('move_to_bin', { p_kind: 'issue', p_id: i.id }), { success: 'Loan moved to the bin' });
   }
 
   async function restore(kind, id, label, button) {
@@ -727,7 +728,7 @@
 
   async function deleteComponent(c) {
     if (c.loaned_units > 0) {
-      toast(`"${c.name}" still has ${c.loaned_units} unit(s) out on loan. Mark them returned first.`, 'error');
+      toast(`"${c.name}" has ${plural(c.loaned_units, 'unit')} on loan. Mark them returned first.`, 'error');
       return;
     }
     const records = state.issues.filter((i) => i.component_id === c.id).length;
@@ -735,8 +736,8 @@
       title: 'Delete permanently?',
       body: [
         el('p', {}, 'This permanently deletes ', el('strong', { text: `"${c.name}"` }),
-          records ? ` and its ${records} issue record${records === 1 ? '' : 's'}.` : '.'),
-        'It cannot be undone from the site. (Nightly backups keep older copies.)',
+          records ? ` and its ${plural(records, 'loan record')}.` : '.'),
+        "This can't be undone from the site.",
       ],
       ok: 'Delete permanently', danger: true,
     })) return;
@@ -746,15 +747,15 @@
   async function deleteIssue(i, byId) {
     const c = byId.get(i.component_id);
     if (!await confirmDialog({
-      title: 'Delete record permanently?',
+      title: 'Delete this loan permanently?',
       body: [
-        `${i.borrower_name} (${i.roll_number}) — ${i.units} × ${c ? c.name : 'component'}, issued ${fmtDate(i.issued_on)}.`,
-        i.returned_on || i.binned_at ? '' : 'This item is still on loan — deleting the record puts its units back in stock.',
-        'It cannot be undone from the site. (Nightly backups keep older copies.)',
+        `${i.borrower_name} (${i.roll_number}): ${i.units} × ${c ? c.name : 'component'}, issued ${fmtDate(i.issued_on)}.`,
+        i.returned_on || i.binned_at ? '' : "It hasn't been returned yet. Deleting it puts the units back in stock.",
+        "This can't be undone from the site.",
       ].filter(Boolean),
       ok: 'Delete permanently', danger: true,
     })) return;
-    await mutate(null, () => sb.rpc('delete_permanently', { p_kind: 'issue', p_id: i.id }), { success: 'Record deleted' });
+    await mutate(null, () => sb.rpc('delete_permanently', { p_kind: 'issue', p_id: i.id }), { success: 'Loan deleted' });
   }
 
   // ─────────────────────────── Export ───────────────────────────
@@ -804,7 +805,7 @@
       const bin = [
         ...state.components.filter((c) => c.binned_at).map((c) => ({ Type: 'Component', Detail: c.name, Units: c.total_units, 'Moved to bin': c.binned_at })),
         ...state.issues.filter((i) => i.binned_at).map((i) => ({
-          Type: 'Issue record', Detail: `${i.borrower_name} (${i.roll_number}) — ${byId.get(i.component_id)?.name || ''}, issued ${i.issued_on}`,
+          Type: 'Loan', Detail: `${i.borrower_name} (${i.roll_number}), ${byId.get(i.component_id)?.name || ''}, issued ${i.issued_on}`,
           Units: i.units, 'Moved to bin': i.binned_at,
         })),
       ];
@@ -815,7 +816,7 @@
         X.utils.book_append_sheet(wb, ws, name);
       };
       add(stock, 'Stock', ['Component', 'Date added', 'Total', 'Available', 'On loan']);
-      add(log, 'Issue log', ['Issued on', 'Borrower', 'Roll number', 'Component', 'Units', 'Status', 'Returned on']);
+      add(log, 'Loans', ['Issued on', 'Borrower', 'Roll number', 'Component', 'Units', 'Status', 'Returned on']);
       add(bin, 'Bin', ['Type', 'Detail', 'Units', 'Moved to bin']);
       X.writeFile(wb, `robostore-${stamp}.xlsx`);
     } catch (e) {
