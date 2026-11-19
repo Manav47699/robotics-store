@@ -6,8 +6,14 @@
 @layer base {
   html { -webkit-text-size-adjust: 100%; }
   body {
-    @apply bg-slate-100 text-slate-900 antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    @apply text-slate-900 antialiased;
+    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    background-color: #f0f4f8;
+    background-image:
+      linear-gradient(rgba(180, 200, 220, 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180, 200, 220, 0.18) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
   [hidden] { display: none !important; }
   button, [type=button], [type=submit] { -webkit-tap-highlight-color: transparent; }
@@ -15,7 +21,7 @@
 
 @layer components {
   .hidden-section { display: none !important; }
-  .num { font-variant-numeric: tabular-nums; }
+  .num { font-family: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
 
   /* Header */
   .topbar { @apply sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200; }
@@ -24,8 +30,12 @@
   /* Cards & panels */
   .card { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
   .panel { @apply card p-4 sm:p-6; }
+  .panel, .paper {
+    background-color: #fdfaf5;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxnIGZpbGwtcnVsZT0iZXZlbm9kZCI+PGcgZmlsbD0iI2QyYjQ4YyIgZmlsbC1vcGFjaXR5PSIwLjE1Ij48cGF0aCBkPSJNMCAwaDF2MUgwVjB6TTEgMWgxdjFIMVYxeiIKLz48L2c+PC9nPjwvc3ZnPg==');
+  }
   .panel-head { @apply flex flex-wrap gap-3 justify-between items-center mb-4; }
-  .panel-title { @apply text-lg font-semibold text-slate-900; }
+  .panel-title { @apply text-2xl font-bold text-slate-900 tracking-tight; }
   .sub-title { @apply text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2; }
 
   .stat { @apply card px-2.5 py-3 sm:px-5 sm:py-4 min-w-0; }
@@ -75,7 +85,7 @@
     .data-table tbody tr { @apply py-3 border-b border-slate-200 hover:bg-transparent; }
     .data-table tbody tr:last-child { @apply border-b-0; }
     .data-table tbody td { @apply flex items-center justify-between gap-4 px-0 py-0.5 border-0 text-right; }
-    .data-table tbody td::before { content: attr(data-label); @apply shrink-0 text-left text-slate-500 text-[13px]; }
+    .data-table tbody td::before { content: attr(data-label); font-family: 'Crimson Pro', Georgia, serif; @apply shrink-0 text-left text-slate-500 text-[15px]; }
     .data-table tbody td.cell-title { @apply block text-left text-[15px] pb-1; }
     .data-table tbody td.cell-title::before, .data-table tbody td.cell-actions::before { content: none; }
     .data-table tbody td.cell-actions { @apply block pt-2; }
@@ -103,7 +113,7 @@
   .modal { @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 sm:p-4; }
   .modal-card { @apply bg-white w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-xl p-5 sm:p-6; }
   .modal-head { @apply flex justify-between items-start gap-4 mb-5; }
-  .modal-title { @apply text-lg font-semibold text-slate-900; }
+  .modal-title { @apply text-xl font-bold text-slate-900; }
   .modal-close { @apply -mr-2 -mt-1 h-9 w-9 inline-flex items-center justify-center rounded-md text-2xl leading-none text-slate-400 hover:text-slate-700 hover:bg-slate-100; }
   .modal-actions { @apply pt-2 grid grid-cols-2 gap-2 sm:flex sm:justify-end; }
 
