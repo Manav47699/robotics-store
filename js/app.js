@@ -399,11 +399,21 @@
     emptyMsg($('#logs-empty'), rows.length, total, 'issue records');
   }
 
+  // Must match the interval in purge_bin() (migration 0004).
+  const BIN_RETENTION_DAYS = 60;
+  function binnedCell(iso) {
+    const purge = new Date(new Date(iso).getTime() + BIN_RETENTION_DAYS * 86400000);
+    const at = `${String(purge.getDate()).padStart(2, '0')} ${MONTHS[purge.getMonth()]} ${purge.getFullYear()}`;
+    return el('td', { class: 'tech-font text-gray-600 whitespace-nowrap' },
+      el('div', { text: fmtDateTime(iso) }),
+      el('div', { class: 'text-xs text-gray-500', text: `Auto-deletes ${at}` }));
+  }
+
   function renderBin(comps, issues, byId) {
     $('#bin-components-body').replaceChildren(...comps.map((c) => el('tr', {},
       el('td', { class: 'font-bold text-gray-950', text: c.name }),
       el('td', { class: 'text-center tech-font text-gray-600', text: c.total_units }),
-      el('td', { class: 'tech-font text-gray-600 whitespace-nowrap', text: fmtDateTime(c.binned_at) }),
+      binnedCell(c.binned_at),
       el('td', { class: 'text-right write-only' },
         el('div', { class: 'flex gap-2 justify-end' },
           el('button', { class: 'act act-restore', text: 'Restore', onclick: (e) => restore('component', c.id, c.name, e.currentTarget) }),
@@ -416,7 +426,7 @@
       el('td', { class: 'tech-font font-bold text-gray-600 whitespace-nowrap', text: fmtDate(i.issued_on) }),
       borrowerCell(i),
       componentCell(i, byId),
-      el('td', { class: 'tech-font text-gray-600 whitespace-nowrap', text: fmtDateTime(i.binned_at) }),
+      binnedCell(i.binned_at),
       el('td', { class: 'text-right write-only' },
         el('div', { class: 'flex gap-2 justify-end' },
           el('button', { class: 'act act-restore', text: 'Restore', onclick: (e) => restore('issue', i.id, `${i.borrower_name}'s record`, e.currentTarget) }),

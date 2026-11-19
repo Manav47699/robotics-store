@@ -48,7 +48,7 @@ Before Nov 2026 the only "keep-alive" was an Auth health ping, which does not to
 - **Login required for everything.** Logged-out visitors (and any account that isn't in the `staff` table) can't read or change anything — enforced by the database (row-level security), not just the page.
 - **Stock can never go negative.** The database checks every issue/restore and locks the component row, so two people issuing the last unit at the same moment can't both succeed.
 - **Double-clicks and network retries are recorded once** (each form submit carries a unique request id).
-- **Move to bin** hides things and can be undone. **Delete permanently** removes them from the site, but every change — including deletions — is copied to `audit_log`, which nobody can edit, and into the nightly backups.
+- **Move to bin** hides things and can be undone for 60 days. After 60 days in the bin they are **deleted automatically** (`purge_bin()`, migration `0004`, run by every keep-alive ping). **Delete permanently** removes them from the site straight away. Either way, every change — including deletions — is copied to `audit_log`, which nobody can edit, and into the nightly backups.
 - **Backups twice a day** are restore-tested before being saved. If a backup fails, GitHub emails the repo owner and opens an issue in this repo.
 - **Offline:** if the internet drops, the site shows the last loaded data read-only and recovers automatically.
 
