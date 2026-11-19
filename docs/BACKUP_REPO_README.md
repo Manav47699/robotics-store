@@ -2,7 +2,7 @@
 
 Nightly backups of the Robotics Club store database. **This repo must stay private** — it contains borrower names and roll numbers.
 
-A new backup is added twice a day (00:00 and 12:00 Nepal time) by the *Nightly backup* workflow in the main `robotics-store-management` repo. Before it is saved here, each backup is restored into a temporary database and checked, so every backup in this repo is known to be restorable.
+A new backup is added twice a day (00:00 and 12:00 Nepal time) by the *Nightly backup* workflow in the main `robotics-store` repo. Before it is saved here, each backup is restored into a temporary database and checked, so every backup in this repo is known to be restorable.
 
 ## What's here
 

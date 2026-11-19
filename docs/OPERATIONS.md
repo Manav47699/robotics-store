@@ -1,6 +1,6 @@
 # Operations guide
 
-Everything needed to run, maintain, back up and recover the store. Written so a future committee can take over without help.
+How to run, maintain, back up and recover the store.
 
 ## How it fits together
 
@@ -17,9 +17,9 @@ Browser ──► Vercel (index.html, js/, assets/, vendor/)        ← deploys 
               └── Vercel Cron → api/keepalive.js (daily)
 ```
 
-### Why the database never goes to sleep
+### Keep-alive
 
-Free Supabase projects **pause after 7 days without database activity**. Three independent things query the database every day:
+Free Supabase projects **pause after 7 days without database activity**. Three separate jobs write to the database every day:
 
 1. each backup run (twice a day): a full dump, plus `scripts/keepalive.sh`
 2. the *Keep-alive & backup watchdog* workflow (twice a day): `scripts/keepalive.sh`
@@ -27,9 +27,7 @@ Free Supabase projects **pause after 7 days without database activity**. Three i
 
 Every keep-alive is a real **write**: it calls `public.keepalive_ping()` (migration `0003_keepalive`), which inserts a row into the hidden `keepalive_heartbeat` table and deletes the previous one. The table always has exactly one row, showing when the last ping happened and where it came from. The site never reads it, logged-out users can't see it, and it is not in the audit log or realtime.
 
-Before Nov 2026 the only "keep-alive" was an Auth health ping, which does not touch the database. The project paused on ~13 Nov 2026 as a result.
-
-### Why a missed backup can't go unnoticed
+### Missed backups
 
 - The watchdog fails if the newest backup is more than 26 hours old, **and starts a new backup by itself** if the database is up.
 - Any failure → GitHub email + one issue (*Backup is failing* / *Database or backups need attention*), with a comment for each repeat.
@@ -55,8 +53,8 @@ Before Nov 2026 the only "keep-alive" was an Auth health ping, which does not to
 ## Local setup (for maintainers)
 
 ```bash
-git clone git@github.com:Manav47699/robotics-store-management.git
-cd robotics-store-management
+git clone git@github.com:Manav47699/robotics-store.git
+cd robotics-store
 cp .env.example .env        # fill in values from Supabase → Project Settings
 git config core.hooksPath .githooks   # blocks commits that contain secrets
 python3 -m http.server 8765           # open http://localhost:8765
@@ -114,6 +112,6 @@ The publishable key in `js/config.js` is public by design and doesn't need rotat
 
 ## Free-tier limits to keep in mind
 
-- Supabase free: 500 MB database (this app uses well under 1 MB per thousand records), projects pause after 7 days of no database activity — three daily keep-alives prevent this (see above). Free projects have no point-in-time recovery: at most ~12 hours of changes can be lost (time since the last backup).
+- Supabase free: 500 MB database (this app uses well under 1 MB per thousand records), projects pause after 7 days of no database activity — three daily keep-alives prevent this (see above). No point-in-time recovery on free projects, so up to ~12 hours of changes (time since the last backup) can be lost.
 - GitHub disables scheduled workflows after 60 days without repo activity — both workflows re-enable each other on every run.
-- If a backup fails or the database is unreachable, you'll get an email and a GitHub issue. Don't ignore it.
+- A failed backup or unreachable database sends an email and opens a GitHub issue.
